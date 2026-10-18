@@ -205,6 +205,9 @@ barplot(
   border = NA
 )
 ```
+Of 44 customers IDs with qualifying completed appointments, 17 have one record and 27 have two or more. Most 31 of 44 have one or two, while a few have much higher counts, which include two with 36 each. 
+
+This shows how common repeat visits are and how visits are distributed across patients. The preliminary repeat proportion is 61.4%, but possible test accounts and duplicate records could inflate it. It is not yet a validated retention rate. 
 
 ```{r}
 barplot(
@@ -239,6 +242,9 @@ barplot(
   cex.names = 0.6
 )
 ```
+Appointment records peak in May 2024, with 83 records. 
+
+This helps determine whether high appointment volume reflects many different patients or repeated activity from a few IDs. The May spike is concentrated, so it should not yet be interpreted as increased demand. Months with zero qualifying records are omitted from this chart. 
 
 ```{r}
 monthly_summary <- dbGetQuery(con, "
@@ -319,6 +325,9 @@ hist(
   border = "white"
 )
 ```
+Among the 27 repeat IDs, the median gap between their first two observed appointment is 14.3 days. A few long gaps raise the mean to 69.7 days. 
+
+This addresses how soon patients return, which adds information beyond simply counting visits. However, minute-long gaps require review, and the chart excludes IDs without an observed second appointment. 
 
 ```{r}
 sum(days_to_second < 1, na.rm = TRUE)
@@ -347,6 +356,9 @@ barplot(
   border = NA
 )
 ```
+Satisfaction is recorded for 61 of 219 appointments records (27.9%) and missing for 158 (72.1%). 
+
+This chart shows a major limitation when comparing satisfaction between one-time and repeat patients: that comparison would cover only a minority of records and could be biased if ratings are recorded selectively. Also, 33 recorded values are zero. This chart shows data availability, not whether patients are satisfied. 
 
 ```{r}
 report_viewing <- dbGetQuery(con, "
