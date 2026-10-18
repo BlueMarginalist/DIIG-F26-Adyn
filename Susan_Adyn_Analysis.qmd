@@ -1,0 +1,392 @@
+---
+title: "Susan's Adyn Analysis Code"
+subtitle: "Adyn Virtual Care"
+author: "Susan Li"
+format: 
+  pdf:
+    toc: false
+editor: 
+  mode: source
+---
+
+```{r}
+library(DBI)
+library(RPostgres)
+
+con <- dbConnect(
+  RPostgres::Postgres(),
+  host = Sys.getenv("ADYN_POSTGRES_HOST"),
+  port = Sys.getenv("ADYN_POSTGRES_PORT"),
+  dbname = Sys.getenv("ADYN_POSTGRES_DB"),
+  user = Sys.getenv("ADYN_POSTGRES_USER"),
+  password = Sys.getenv("ADYN_POSTGRES_PASSWORD")
+)
+```
+
+```{r}
+dbGetQuery(con, "SELECT 1 AS connection_test")
+```
+
+```{r}
+dbListTables(con)
+```
+
+```{r}
+dbListFields(con, "customers")
+dbListFields(con, "hormones")
+dbListFields(con, "hormonevalues")
+dbListFields(con, "resultvalues")
+```
+
+```{r}
+dbListFields(con, "appointments")
+
+dbListFields(con, "appointmenthistory")
+
+dbListFields(con, "appointments_resultvalues")
+```
+
+```{r}
+status_counts <- dbGetQuery(con, "
+  SELECT status, COUNT(*) AS appointment_count
+  FROM appointments
+  GROUP BY status
+  ORDER BY appointment_count DESC
+")
+
+status_counts
+
+outcome_counts <- dbGetQuery(con, "
+  SELECT appointment_outcome, COUNT(*) AS appointment_count
+  FROM appointments
+  GROUP BY appointment_outcome
+  ORDER BY appointment_count DESC
+")
+
+outcome_counts
+```
+
+```{r}
+completion_check <- dbGetQuery(con, "
+  SELECT
+    status,
+    appointment_outcome,
+    COUNT(*) AS appointment_count
+  FROM appointments
+  GROUP BY status, appointment_outcome
+  ORDER BY status, appointment_outcome
+")
+
+completion_check
+```
+
+```{r}
+completed_appointments <- dbGetQuery(con, "
+  SELECT DISTINCT id, customer_id
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+")
+
+visits_per_patient <- table(completed_appointments$customer_id)
+
+table(visits_per_patient)
+```
+
+```{r}
+completed_dates <- dbGetQuery(con, "
+  SELECT appointment_date
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+")
+
+summary(completed_dates$appointment_date)
+```
+
+```{r}
+duplicate_check <- dbGetQuery(con, "
+  SELECT
+    COUNT(*) AS records_at_same_time,
+    COUNT(*) 
+  FROM appointments
+")
+```
+
+```{r}
+duplicate_check <- dbGetQuery(con, "
+  SELECT
+    customer_id,
+    appointment_date,
+    COUNT(*) AS record_count
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+  GROUP BY customer_id, appointment_date
+  HAVING COUNT(*) > 1
+")
+
+nrow(duplicate_check)
+
+table(duplicate_check$record_count)
+```
+
+```{r}
+View(duplicate_check)
+```
+
+```{r}
+follow_up_counts <- dbGetQuery(con, "
+  SELECT follow_up_required, COUNT(*) AS appointment_count
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+  GROUP BY follow_up_required
+")
+
+follow_up_counts
+```
+
+```{r}
+satisfaction <- dbGetQuery(con, "
+  SELECT
+    patient_interaction_satisfaction,
+    satisfaction_level_contribution
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+")
+
+table(satisfaction$patient_interaction_satisfaction,
+      useNA = "always")
+
+table(satisfaction$satisfaction_level_contribution,
+      useNA = "always")
+```
+
+```{r}
+possible_test <- grepl(
+  "test",
+  satisfaction$satisfaction_level_contribution,
+  ignore.case = TRUE
+)
+
+table(possible_test)
+```
+
+```{r}
+dbListFields(con, "samples")
+
+dbListFields(con, "customerintake")
+
+dbListFields(con, "medicalbiosubmissions")
+```
+
+```{r}
+dbListFields(con, "shipments")
+
+dbListFields(con, "orders")
+```
+
+```{r}
+visit_counts <- table(visits_per_patient)
+
+barplot(
+  visit_counts,
+  main = "Completed Appointments per Patient (Preliminary)",
+  xlab = "Number of completed appointments",
+  ylab = "Number of patients",
+  col = "steelblue",
+  border = NA
+)
+```
+
+```{r}
+barplot(
+  as.numeric(status_counts$appointment_count),
+  names.arg = status_counts$status,
+  horiz = TRUE,
+  las = 1,
+  main = "Appointment Status Counts",
+  xlab = "Number of appointment records",
+  col = "steelblue",
+  border = NA,
+  cex.names = 0.7
+)
+```
+
+```{r}
+appointment_month <- format(
+  completed_dates$appointment_date,
+  "%Y-%m"
+)
+
+monthly_counts <- table(appointment_month)
+
+barplot(
+  monthly_counts,
+  main = "Completed Appointments by Month (Preliminary)",
+  xlab = "",
+  ylab = "Number of appointment records",
+  col = "steelblue",
+  border = NA,
+  las = 2,
+  cex.names = 0.6
+)
+```
+
+```{r}
+monthly_summary <- dbGetQuery(con, "
+  SELECT
+    TO_CHAR(appointment_date, 'YYYY-MM') AS month,
+    COUNT(*) AS appointment_count,
+    COUNT(DISTINCT customer_id) AS patient_count
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+  GROUP BY TO_CHAR(appointment_date, 'YYYY-MM')
+  ORDER BY month
+")
+
+monthly_summary
+```
+
+```{r}
+may_visits <- dbGetQuery(con, "
+  SELECT customer_id, COUNT(*) AS appointment_count
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+    AND appointment_date >= '2024-05-01'
+    AND appointment_date < '2024-06-01'
+  GROUP BY customer_id
+  ORDER BY appointment_count DESC
+")
+
+may_visits$appointment_count
+```
+
+```{r}
+barplot(
+  as.numeric(may_visits$appointment_count),
+  names.arg = paste("ID", 1:nrow(may_visits)),
+  main = "May 2024 Appointments by Patient ID (Preliminary)",
+  xlab = "Patient IDs ranked by appointment count",
+  ylab = "Number of appointment records",
+  col = "steelblue",
+  border = NA,
+  cex.names = 0.7
+)
+```
+
+```{r}
+visit_dates <- dbGetQuery(con, "
+  SELECT customer_id, appointment_date
+  FROM appointments
+  WHERE status = 'completed'
+    AND appointment_outcome = 'visit complete'
+    AND customer_id IS NOT NULL
+    AND appointment_date IS NOT NULL
+  ORDER BY appointment_date
+")
+
+dates_by_patient <- split(
+  visit_dates$appointment_date,
+  visit_dates$customer_id
+)
+
+days_to_second <- sapply(dates_by_patient, function(dates) {
+  if (length(dates) < 2) return(NA_real_)
+
+  as.numeric(difftime(dates[2], dates[1], units = "days"))
+})
+
+summary(days_to_second)
+
+hist(
+  days_to_second[!is.na(days_to_second)],
+  main = "Time to Second Completed Appointment (Preliminary)",
+  xlab = "Days between first and second appointments",
+  ylab = "Number of patient IDs",
+  col = "steelblue",
+  border = "white"
+)
+```
+
+```{r}
+sum(days_to_second < 1, na.rm = TRUE)
+
+short_gaps <- days_to_second[!is.na(days_to_second) &
+                               days_to_second < 1]
+
+unname(round(short_gaps * 24, 2))
+```
+
+```{r}
+satisfaction_available <- c(
+  Recorded = sum(!is.na(
+    satisfaction$patient_interaction_satisfaction
+  )),
+  Missing = sum(is.na(
+    satisfaction$patient_interaction_satisfaction
+  ))
+)
+
+barplot(
+  satisfaction_available,
+  main = "Satisfaction Data Availability (Preliminary)",
+  ylab = "Number of appointment records",
+  col = c("steelblue", "gray70"),
+  border = NA
+)
+```
+
+```{r}
+report_viewing <- dbGetQuery(con, "
+  SELECT
+    COUNT(*) AS total_reports,
+    COUNT(customer_viewed_date) AS reports_with_view_date,
+    COUNT(*) - COUNT(customer_viewed_date) AS reports_without_view_date
+  FROM resultvalues
+")
+
+report_viewinWh
+```
+
+```{r}
+report_links <- dbGetQuery(con, "
+  SELECT
+    r.id AS report_id,
+    r.customer_viewed_date,
+    o.customer_id
+  FROM resultvalues AS r
+  LEFT JOIN samples AS s
+    ON r.hormone_sample_id = s.id
+  LEFT JOIN shipments AS sh
+    ON s.shipment_id = sh.id
+  LEFT JOIN orders AS o
+    ON sh.order_id = o.id
+  WHERE r.customer_viewed_date IS NOT NULL
+")
+
+nrow(report_links)
+length(unique(report_links$report_id))
+
+sum(is.na(report_links$customer_id))
+```
+
+“How should we identify real, completed patient visits and exclude internal testing, duplicates, or rescheduled appointments?”
+We found test-like comments, conflicting completion labels, and appointments minutes apart. A reliable visit definition is essential for calculating visits per patient and repeat visits.
+
+“What is the correct way to link a patient’s report-viewing date to their first appointment booking, and which timestamps should we use?”
+This directly supports your goal of measuring the share of report viewers who book a visit and how long that takes. We need to confirm that the linked customer is the patient and that booking occurred after viewing.
+
+“Where is follow-up recommendation information recorded, and how should we interpret the satisfaction fields?”
+The follow-up flag is missing for all 219 qualifying records, and many satisfaction values are missing or zero. Clarifying these fields will help you assess whether follow-up recommendations and satisfaction are associated with repeat visits.
