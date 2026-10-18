@@ -1,0 +1,89 @@
+customer_id,stripe_customer_id,stripe_invoice_id,status,details,created_date
+f5d6c6e0-8e8f-4fc3-90d8-cc07b4b24bde,cus_LNMLkdyHTvMUgw,in_1KgbdTApFTaOcYxWW66dTsGi,failed,Cannot charge a customer that has no active card,2022-03-26 00:22:32.459485
+ba40881f-2b36-4be1-bf29-7f4b907f9065,cus_LNMPLKcrna0YSF,in_1KgbgMApFTaOcYxWiLfZmGsj,failed,Cannot charge a customer that has no active card,2022-03-26 00:22:33.069465
+32166b01-8f9c-4625-a72e-b7b392d28172,cus_LNhdcKMaBvYlFC,in_1KgwEsApFTaOcYxWnE2NWx58,failed,Cannot charge a customer that has no active card,2022-03-26 00:22:33.651632
+05b64422-befb-46bc-a770-54075814412b,cus_LffFOyft74NA3I,in_1KyLolApFTaOcYxWHcz9qJG8,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-05-11 20:07:34.716057
+40f810c3-81ee-49ef-b816-c8962bf65b60,cus_LO0Akglwb5nPo0,in_1KhEAoApFTaOcYxWZbeUlpN5,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-03-26 00:22:36.120762
+e96c6cb0-f752-4d5a-858d-5ac9ed7d4518,cus_LdNvaYSZ6wApiB,in_1L3jjeApFTaOcYxWKWkXFggC,failed,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-05-26 16:40:33.79928
+0de26432-3b70-400e-95f3-82570b1debc4,cus_LPW248gmnzgbLL,in_1Kih3yApFTaOcYxWQeu1pgYv,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-03-29 15:34:34.141822
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1L5WiJApFTaOcYxWGxkAk1Ev,failed,Your card has expired.,2022-05-31 15:10:34.651056
+f646f531-5d92-49de-8ca0-c786db3fd5ed,cus_LPXapvPV8w9RUz,in_1KiiVzApFTaOcYxWVvEMqxJi,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-03-29 17:07:34.218823
+93630188-5bfc-4675-b406-173ecca825df,cus_LPaB42VImEDL6W,in_1Kil2lApFTaOcYxWXPOWCP7t,failed,Invoice is already paid,2022-03-29 20:34:39.425098
+e1dc066b-86f8-4237-b63e-6e1b79de77dd,cus_LZJZ1a4aulK9yl,in_1Kuh7rApFTaOcYxW5eI26jME,retry,Invoice is already paid,2022-05-01 18:13:32.541465
+e1dc066b-86f8-4237-b63e-6e1b79de77dd,cus_LZJZ1a4aulK9yl,in_1KuhYNApFTaOcYxWDNPdcCwr,retry,Invoice is already paid,2022-05-01 18:34:30.968141
+e1dc066b-86f8-4237-b63e-6e1b79de77dd,cus_LZJZ1a4aulK9yl,in_1KujqcApFTaOcYxWTPLeiBUN,retry,Invoice is already paid,2022-05-01 21:01:30.994173
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1L5a5KApFTaOcYxWV5s5e2YV,failed,Your card has expired.,2022-05-31 18:46:33.360185
+e1dc066b-86f8-4237-b63e-6e1b79de77dd,cus_LZJZ1a4aulK9yl,in_1KxeMZApFTaOcYxWvqNQbsdA,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-05-09 22:40:36.191037
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1L5c6AApFTaOcYxWAQdxNREd,failed,Your card has expired.,2022-05-31 20:55:33.628933
+e1dc066b-86f8-4237-b63e-6e1b79de77dd,cus_LZJZ1a4aulK9yl,in_1KxfrTApFTaOcYxWCBmDVctg,resolved,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-05-09 23:28:35.577053
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LyIPXApFTaOcYxWIAInlJAm,failed,Your card has expired.,2022-10-29 17:01:34.862522
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LDwgZApFTaOcYxWJqP9AVj0,failed,Your card has expired.,2022-06-23 20:31:34.124569
+05b64422-befb-46bc-a770-54075814412b,cus_LffFOyft74NA3I,in_1LHaCUApFTaOcYxWuNxljibl,retry,This payment requires additional user action before it can be completed successfully. Payment can be completed using the PaymentIntent associated with the invoice. For more details see: https://stripe.com/docs/billing/subscriptions/overview#requires-action,2022-07-03 21:19:34.671768
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LKUu2ApFTaOcYxWXqMKUxwB,failed,Your card has expired.,2022-07-11 22:16:33.700339
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LTRkNApFTaOcYxWbmgpMPRm,failed,Your card has expired.,2022-08-05 14:43:34.098654
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LXQzPApFTaOcYxWbSJepABD,failed,Your card has expired.,2022-08-16 14:43:34.051038
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LXR5CApFTaOcYxWwyQfQlYD,failed,Your card has expired.,2022-08-16 14:49:33.413033
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1Lf7dKApFTaOcYxWFR2CIYzy,failed,Your card has expired.,2022-09-06 19:40:33.768227
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LqObmApFTaOcYxWKEruduaF,failed,Your card has expired.,2022-10-07 22:01:33.685176
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LrpZuApFTaOcYxWHafAyKSK,failed,Your card has expired.,2022-10-11 21:01:34.256142
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LrpcoApFTaOcYxWLkezoIlh,failed,Your card has expired.,2022-10-11 21:04:33.652304
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1Lrq2xApFTaOcYxWel4vAIR9,failed,Your card has expired.,2022-10-11 21:31:33.935764
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1Lrq8kApFTaOcYxW2S1l4yCR,failed,Your card has expired.,2022-10-11 21:37:33.699082
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LrqBfApFTaOcYxWqkVm7vu5,failed,Your card has expired.,2022-10-11 21:40:33.949812
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LrqtCApFTaOcYxWvWPL6xVk,failed,Your card has expired.,2022-10-11 22:25:33.263999
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1Lrqw6ApFTaOcYxWl7S4Etrh,failed,Your card has expired.,2022-10-11 22:28:32.720345
+46520f78-11fb-4935-9fd2-6e6c766b0af1,cus_Mh3PjS8sTGbdpn,in_1LxfJLApFTaOcYxWYGjIe6fR,failed,Your card was declined.,2022-10-27 23:16:33.729981
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LyIJiApFTaOcYxW4AZ2pZl7,failed,Your card has expired.,2022-10-29 16:55:33.003968
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LyISQApFTaOcYxWOtGj6gR2,failed,Your card has expired.,2022-10-29 17:04:34.254512
+9fa25687-1b09-44d9-916c-3322b6f9b9cd,cus_LFRWxPkouvYq8i,in_1LyIVKApFTaOcYxWZwsICgam,failed,Your card has expired.,2022-10-29 17:07:33.194289
+e8dbcb65-0027-4bda-acf9-cf9beb58daec,cus_NMa9I2Ckuz9Sw0,in_1Mbr1mApFTaOcYxWu4DSCNe1,failed,Cannot charge a customer that has no active card,2023-02-15 19:52:31.877189
+88bb039c-79be-4f44-a0f7-f7a84e265ab4,cus_NjdRKYTSh1ZUOH,in_1MyABGApFTaOcYxWbeUJRD6g,failed,Your card was declined.,2023-04-18 08:46:32.432213
+2d5823b4-c118-4152-9880-64effb32ce7d,cus_O26U4WKCefETCt,in_1NG2LqApFTaOcYxWEienoYXt,failed,Cannot charge a customer that has no active card,2023-06-06 16:03:19.710679
+2c69d15a-1032-4ddb-8097-0fe392c4e60c,cus_O9QEshiFvDtWmq,in_1NN7QQApFTaOcYxWmS3MWvmO,failed,Cannot charge a customer that has no active card,2023-06-26 04:53:19.572443
+9dfe3075-bf0f-497d-a424-40351beaecb6,cus_O9R55HA5OBdQaU,in_1NN8HeApFTaOcYxWQU2gsOIU,failed,Cannot charge a customer that has no active card,2023-06-26 05:48:19.639293
+c94dfad0-9a94-4f39-aedc-100520e951c3,cus_OCZrQSmc4xwxCM,in_1NQAhiApFTaOcYxW3QPUhnLt,failed,Your card was declined.,2023-07-04 14:59:48.121921
+4e91e166-f0d3-4b5a-8fc2-e5d04bd3830f,cus_OCZtp6uSoO2jLq,in_1NQAk8ApFTaOcYxWMh4MvYxZ,failed,Your card was declined.,2023-07-04 15:02:18.72341
+51731d5f-6660-47ec-bd22-c31231e2305d,cus_OCZvFZvwg0rYN1,in_1NQAlkApFTaOcYxWzQW14BxH,failed,Your card was declined.,2023-07-04 15:03:58.20154
+ec3abd4a-15ee-4518-9ec1-1f4a1a982f70,cus_OCa0oYXs86fEy3,in_1NQAqmApFTaOcYxWMgrrbHIO,failed,Your card was declined.,2023-07-04 15:09:09.882251
+3d314db8-9d30-4e15-8ceb-ae71b1f43544,cus_OCa1DGk3EXBAn8,in_1NQArzApFTaOcYxWNDC2dxcG,failed,Your card was declined.,2023-07-04 15:10:25.22691
+de114fec-4d7a-47a6-9dce-4b37dcb209e3,cus_OCa3uu9PEVwPbf,in_1NQAtwApFTaOcYxWSjloIeLp,failed,Your card was declined.,2023-07-04 15:12:26.136151
+b9ada46c-600e-4955-9725-cefbdc771d64,cus_OCaKIuAUuvp0lh,in_1NQBAOApFTaOcYxWVVFAczKv,failed,Your card was declined.,2023-07-04 15:29:25.877911
+5178006a-abdd-4597-bc88-54946cc82bf3,cus_OCcHb4jaKjV9fm,in_1NQD38ApFTaOcYxWLOP5q20p,failed,Your card was declined.,2023-07-04 17:30:04.358725
+3f9139f0-94de-4b0d-9c7a-7904b181dc46,cus_ODiBtu6b8oRxnR,in_1NRGmdApFTaOcYxWnFvUA53V,failed,Cannot charge a customer that has no active card,2023-07-07 15:41:24.220994
+4be6c51c-9eec-4d07-b24a-bfe58d312df2,cus_OFaUq9aquEfoZ1,in_1NT5QkApFTaOcYxWpRpYbHTk,failed,Cannot charge a customer that has no active card,2023-07-12 15:58:19.630705
+039012f0-680b-478c-a5d8-a9b604f5e556,cus_OFbAFMhIfjVcDy,in_1NT68IApFTaOcYxW4jgnI8X0,failed,Cannot charge a customer that has no active card,2023-07-12 16:43:19.961825
+790da3a8-4847-41e9-a80d-916de9d1728e,cus_OFbJ6GVWv2IE0w,in_1NT6D8ApFTaOcYxWHvSNbsaA,failed,Cannot charge a customer that has no active card,2023-07-12 16:48:19.854937
+f17453e3-a0bc-4efc-a6fc-27ba8ae827e6,cus_OFbLN5IetleWcB,in_1NT6HyApFTaOcYxWyUgjKQnm,failed,Cannot charge a customer that has no active card,2023-07-12 16:53:19.626337
+6d0c6161-372c-4586-997e-e537924a1988,cus_OFbP90nIRSrY8E,in_1NT6MoApFTaOcYxWCNndpvKz,failed,Cannot charge a customer that has no active card,2023-07-12 16:58:19.684043
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1P1MpyApFTaOcYxWqNIIuFwZ,failed,Your card has expired.,2024-04-03 05:58:21.143985
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1P1hMZApFTaOcYxWxAz0BCOH,failed,Your card has expired.,2024-04-04 03:53:21.185995
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1P74HWApFTaOcYxWcqcBfLjb,failed,Your card has expired.,2024-04-18 23:22:20.558946
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1P7LXsApFTaOcYxW3BuUcznh,failed,Your card has expired.,2024-04-19 17:48:22.520626
+3bdea8bd-498e-4406-b26f-8a43886f0802,cus_PEKeIjw7gvoU1v,in_1PBiTgApFTaOcYxW7QfBRytS,retry,Your card has expired.,2024-05-01 19:06:06.843276
+86bb334c-7ef1-4add-91a7-8d4659a61a9a,cus_L1gCkCf7FOl3hs,in_1PBk7hApFTaOcYxW0YSAJrlw,failed,Your card has expired.,2024-05-01 21:58:23.933001
+44df375b-d300-4198-9ae9-975fb964055b,cus_L2oXCt50e8J0Li,in_1PBk1lApFTaOcYxWgehSNO7z,failed,Your card has expired.,2024-05-01 21:58:25.53437
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1PBjuwApFTaOcYxW7Drqy9GZ,failed,Your card has expired.,2024-05-01 21:58:27.290726
+009197a8-508e-4b66-b7b9-b4f1a0cd5720,cus_KHT91FGjPRxVob,in_1PBm1aApFTaOcYxWUMRmfhE5,failed,Your card has expired.,2024-05-01 22:53:20.884069
+12f8d584-672f-49c1-9dd3-5150949a8da6,cus_QgfLTkl9zc8zz7,in_1PpHrSApFTaOcYxWjuWuzyWB,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-08-18 22:58:19.250837
+a4e19260-53b7-47c9-9305-40198fec6fa4,cus_PrdYzhSsl9z6J3,in_1PBn2UApFTaOcYxWTRREWz9r,resolved,Your card has expired.,2024-05-01 23:58:20.726586
+47fb76f4-81cd-49d1-91b3-3348d73d3aba,cus_RRtxnKwyWaU4PW,in_1QYf3eApFTaOcYxWA7UebDkr,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-12-23 01:13:20.133362
+c5c040e1-7c01-45a4-8c81-6bee323b9f84,cus_NUjLq6ouhuUwH7,in_1PDxhYApFTaOcYxWdHQUTXST,resolved,Your card has expired.,2024-05-07 23:45:43.166542
+009197a8-508e-4b66-b7b9-b4f1a0cd5720,cus_KHT91FGjPRxVob,in_1PDyB0ApFTaOcYxWhtlQe1qE,failed,Your card has expired.,2024-05-08 00:16:09.324832
+821c0300-5442-4c04-8126-95bafbb88496,cus_PtzIbmzObIjk8a,in_1PT8KEApFTaOcYxWKYzOGYov,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-06-18 20:08:19.742592
+1138880f-5d24-46ba-8b50-d40a2b36b199,cus_QTpNJrRYWt2owK,in_1PcrimApFTaOcYxWWfNCabjc,failed,Your card was declined.,2024-07-15 16:25:54.136545
+0e66d81a-fb68-4716-b7ee-03ead438b80b,cus_Np3ACDfl7cf6Pv,in_1PdwnaApFTaOcYxWSexuM0N9,failed,Your card has expired.,2024-07-18 16:03:21.170035
+cff2a1c8-5ea4-4925-aa5d-f7706f3f16d1,cus_LfOdyVXZUio4oi,in_1PkWV0ApFTaOcYxWGa29235y,failed,Your card has expired.,2024-08-05 19:23:20.928012
+c71cf708-cf88-48d8-bc8b-a0ead3f533fa,cus_KIcmasYuDEROoJ,in_1Ps4zmApFTaOcYxWgm93rH8Q,failed,Your card has expired.,2024-08-26 15:38:20.350629
+cff2a1c8-5ea4-4925-aa5d-f7706f3f16d1,cus_LfOdyVXZUio4oi,in_1PssriApFTaOcYxWZGMu3znQ,failed,Your card has expired.,2024-08-28 20:53:20.756381
+bd891e20-c107-4f9c-9654-a668ee4d0e1d,cus_QodrhX6n74rc5G,in_1Px0ahApFTaOcYxWZcPtYIQK,failed,Your card was declined.,2024-09-09 05:56:49.374029
+47fb76f4-81cd-49d1-91b3-3348d73d3aba,cus_RRtxnKwyWaU4PW,in_1QZ0CwApFTaOcYxWNAkAb0PJ,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-12-23 01:13:21.276023
+12f8d584-672f-49c1-9dd3-5150949a8da6,,in_1PpHrSApFTaOcYxWjuWuzyWB,retry,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-08-18 22:53:18.754244
+12f8d584-672f-49c1-9dd3-5150949a8da6,,in_1PpHrSApFTaOcYxWjuWuzyWB,retry,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-08-18 22:48:18.839792
+12f8d584-672f-49c1-9dd3-5150949a8da6,,in_1PpHrSApFTaOcYxWjuWuzyWB,retry,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-08-18 22:46:12.052659
+94064c0f-a918-4354-a047-a6c41381afca,cus_PBbVIHbfbHsF1t,in_1ONEIiApFTaOcYxWckI6dNEx,resolved,Your card was declined.,2023-12-14 12:46:06.927521
+cc18b762-fa9b-486a-8f36-e56288a1915d,cus_NjPRFSF1ll799t,in_1MxweEApFTaOcYxWWzzca7ps,resolved,Your card was declined.,2023-04-17 18:19:32.702575
+0cd52b93-ced0-406e-b09d-5d3392ace8d0,cus_QrAdxCR8L7MYyU,in_1Q7NNmApFTaOcYxWXFJCjXtl,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-10-07 20:18:20.438834
+0cd52b93-ced0-406e-b09d-5d3392ace8d0,cus_QrAdxCR8L7MYyU,in_1Q7NScApFTaOcYxWd8sHZQoQ,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-10-07 20:23:19.730684
+98b4eaf4-3c26-40e6-b2a0-f59fbc7c9118,cus_LfSD88zHQiqINW,in_1PkWjWApFTaOcYxWiBeY0UMW,resolved,Your card has expired.,2024-08-05 19:38:20.417475
+98b4eaf4-3c26-40e6-b2a0-f59fbc7c9118,cus_LfSD88zHQiqINW,in_1QOSfaApFTaOcYxWBsTYt8MA,resolved,Your card has expired.,2024-11-23 23:23:20.689437
+47fb76f4-81cd-49d1-91b3-3348d73d3aba,cus_RRY5Z863DZnnkj,in_1QYf3eApFTaOcYxWA7UebDkr,failed,"There is no `default_payment_method` set on this Customer or Invoice. Set a default on one of those objects, or specify the Payment Method you wish to use in the `payment_method` parameter.",2024-12-22 02:38:20.648355

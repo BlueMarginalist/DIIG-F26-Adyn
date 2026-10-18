@@ -1,0 +1,5 @@
+$env:ADYN_POSTGRES_HOST="adyn-staging.cluster-c7zhbbilm2vz.us-east-1.rds.amazonaws.com"
+$env:ADYN_POSTGRES_PORT="5432"
+$env:ADYN_POSTGRES_DB="adyn"
+$env:ADYN_POSTGRES_USER="adyn"
+$env:ADYN_POSTGRES_PASSWORD="rg47j_kMi^90k!"

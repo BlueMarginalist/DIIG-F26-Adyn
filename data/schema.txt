@@ -1,0 +1,576 @@
+adyn_form | AdynForm | form_type | text
+adyn_form | AdynForm | form_fields | text
+adyn_form | AdynForm | id | uuid
+adyn_form | AdynForm | created_date | timestamp without time zone
+adyn_form | AdynForm | version | double precision
+adyn_form | CustomerCheckIn | customer_id | uuid
+adyn_form | CustomerCheckIn | product_type | text
+adyn_form | CustomerCheckIn | check_in_type | text
+adyn_form | CustomerCheckIn | check_in_form | text
+adyn_form | CustomerCheckIn | id | uuid
+adyn_form | CustomerCheckIn | started_date | timestamp without time zone
+adyn_form | CustomerCheckIn | completed_date | timestamp without time zone
+adyn_form | CustomerCheckIn | ip | character varying
+adyn_form | CustomerCheckIn | notes | text
+adyn_form | CustomerCheckIn | adyn_form_id | uuid
+adyn_form | CustomerIntake | customer_id | uuid
+adyn_form | CustomerIntake | intake_type | text
+adyn_form | CustomerIntake | intake_form | text
+adyn_form | CustomerIntake | completed_date | timestamp without time zone
+adyn_form | CustomerIntake | notes | text
+adyn_form | CustomerIntake | id | uuid
+adyn_form | CustomerIntake | ip | character varying
+adyn_form | CustomerIntake | started_date | timestamp without time zone
+adyn_form | CustomerIntake | adyn_form_id | uuid
+adyn_form | MedicalHistory | customer_id | uuid
+adyn_form | MedicalHistory | medical_history_form | text
+adyn_form | MedicalHistory | ip | character varying
+adyn_form | MedicalHistory | notes | text
+adyn_form | MedicalHistory | id | uuid
+adyn_form | MedicalHistory | started_date | timestamp without time zone
+adyn_form | MedicalHistory | completed_date | timestamp without time zone
+adyn_form | MedicalHistory | adyn_form_id | uuid
+public | adynform | id | uuid
+public | adynform | form_type | character varying
+public | adynform | form_fields | jsonb
+public | adynform | created_date | timestamp without time zone
+public | adynform | version | double precision
+public | adynform | modified_date | timestamp without time zone
+public | adynformhistory | id | uuid
+public | adynformhistory | adynform_id | uuid
+public | adynformhistory | new_values | jsonb
+public | adynformhistory | created_date | timestamp without time zone
+public | appointmenthistory | id | uuid
+public | appointmenthistory | appointment_id | uuid
+public | appointmenthistory | new_values | jsonb
+public | appointmenthistory | created_date | timestamp without time zone
+public | appointments | id | uuid
+public | appointments | customer_id | uuid
+public | appointments | provider_id | character varying
+public | appointments | email_id | character varying
+public | appointments | conference_link | character varying
+public | appointments | emailed_date | timestamp without time zone
+public | appointments | appointment_date | timestamp with time zone
+public | appointments | appointment_string | character varying
+public | appointments | created_date | timestamp without time zone
+public | appointments | modified_date | timestamp without time zone
+public | appointments | status | character varying
+public | appointments | steadymd_appointment_id | character varying
+public | appointments | visit_notes | text
+public | appointments | post_visit_summary | text
+public | appointments | provider_evaluation | integer
+public | appointments | appointment_outcome | character varying
+public | appointments | follow_up_required | boolean
+public | appointments | bc_results_facilitate_shared_decision | integer
+public | appointments | patient_interaction_satisfaction | integer
+public | appointments | satisfaction_level_contribution | character varying
+public | appointments | confirmed_status | character varying
+public | appointments | stripe_invoice_item_id | character varying
+public | appointments | stripe_invoice_id | character varying
+public | appointments | stripe_price_id | character varying
+public | appointments | date_order_paid | timestamp without time zone
+public | appointments | result_values_id | uuid
+public | appointments | admin_notes | text
+public | appointments | sku | character varying
+public | appointments | adyn_disapproved_reason | character varying
+public | appointments | customer_visibility | boolean
+public | appointments | reason | character varying
+public | appointments | stripe_customer_id | character varying
+public | appointments | adyn_approved | boolean
+public | appointments | date_order_placed | timestamp without time zone
+public | appointments | friendly_order_id | character varying
+public | appointments_resultvalues | appointment_id | uuid
+public | appointments_resultvalues | result_values_id | uuid
+public | appointments_resultvalues | created_date | timestamp without time zone
+public | appointments_resultvalues | modified_date | timestamp without time zone
+public | appointmentselections | id | uuid
+public | appointmentselections | customer_id | uuid
+public | appointmentselections | kind | character varying
+public | appointmentselections | appointment_id | uuid
+public | appointmentselections | active | boolean
+public | appointmentselections | created_date | timestamp without time zone
+public | appointmentselections | modified_date | timestamp without time zone
+public | couponorders | id | uuid
+public | couponorders | coupon_code | character varying
+public | couponorders | recipient_email | character varying
+public | couponorders | stripe_invoice_item_id | character varying
+public | couponorders | stripe_customer_id | character varying
+public | couponorders | customer_id | uuid
+public | couponorders | stripe_invoice_id | character varying
+public | couponorders | emailed_date | timestamp without time zone
+public | couponorders | name | character varying
+public | couponorders | sku | character varying
+public | couponorders | date_order_placed | timestamp without time zone
+public | couponorders | date_order_paid | timestamp without time zone
+public | couponorders | ip | character varying
+public | couponorders | created_date | timestamp without time zone
+public | couponorders | modified_date | timestamp without time zone
+public | couponorders | recipient_first_name | character varying
+public | couponorders | recipient_last_name | character varying
+public | couponorders | recipient_is_18_or_older | boolean
+public | couponorders | giftor_is_legal_guardian | boolean
+public | couponorders | friendly_order_id | character varying
+public | coupons_redeemers | redeemer_id | uuid
+public | coupons_redeemers | coupon_code | character varying
+public | coupons_redeemers | created_date | timestamp without time zone
+public | customercheckin | id | uuid
+public | customercheckin | customer_id | uuid
+public | customercheckin | order_id | uuid
+public | customercheckin | check_in_form | jsonb
+public | customercheckin | product_type | character varying
+public | customercheckin | check_in_type | character varying
+public | customercheckin | created_date | timestamp without time zone
+public | customercheckin | completed_date | timestamp without time zone
+public | customercheckin | ip | character varying
+public | customercheckin | notes | text
+public | customercheckin | adyn_form_id | uuid
+public | customercheckin | modified_date | timestamp without time zone
+public | customercheckinhistory | id | uuid
+public | customercheckinhistory | customer_checkin_id | uuid
+public | customercheckinhistory | new_values | jsonb
+public | customercheckinhistory | created_date | timestamp without time zone
+public | customerhistory | id | uuid
+public | customerhistory | customer_id | uuid
+public | customerhistory | new_values | jsonb
+public | customerhistory | created_date | timestamp without time zone
+public | customerintake | id | uuid
+public | customerintake | customer_id | uuid
+public | customerintake | intake_form | jsonb
+public | customerintake | intake_type | character varying
+public | customerintake | created_date | timestamp without time zone
+public | customerintake | completed_date | timestamp without time zone
+public | customerintake | notes | text
+public | customerintake | ip | character varying
+public | customerintake | adyn_form_id | uuid
+public | customerintake | modified_date | timestamp without time zone
+public | customerintakehistory | id | uuid
+public | customerintakehistory | customer_intake_id | uuid
+public | customerintakehistory | new_values | jsonb
+public | customerintakehistory | created_date | timestamp without time zone
+public | customers | id | uuid
+public | customers | email | character varying
+public | customers | new_email | character varying
+public | customers | phone | character varying
+public | customers | password_hash | character varying
+public | customers | first_name | character varying
+public | customers | last_name | character varying
+public | customers | preferred_name | character varying
+public | customers | sex | character varying
+public | customers | gender | character varying
+public | customers | pronouns | character varying
+public | customers | date_of_birth | date
+public | customers | v_code | character varying
+public | customers | v_code_used | boolean
+public | customers | u_code | character varying
+public | customers | u_code_used | boolean
+public | customers | role | integer
+public | customers | age_confirmed | boolean
+public | customers | residence_confirmed | boolean
+public | customers | terms_confirmed | boolean
+public | customers | email_pref | boolean
+public | customers | referral_hero_id | character varying
+public | customers | hubspot_id | character varying
+public | customers | stripe_customer_id | character varying
+public | customers | steadymd_patient_id | character varying
+public | customers | jotform_form_id | character varying
+public | customers | active | boolean
+public | customers | created_date | timestamp without time zone
+public | customers | modified_date | timestamp without time zone
+public | customers | ip | character varying
+public | customers | npi | character varying
+public | customers | provider_id | character varying
+public | customers | informed_consent_confirmed | timestamp without time zone
+public | customers | ctg_opt_in | boolean
+public | customers | ctg_decision_date | timestamp without time zone
+public | customers | subscribed_via | character varying
+public | customers | shared_story_via | character varying
+public | customers | subscribed_url | text
+public | customers | guardian_consent_url | character varying
+public | emailactivities | id | uuid
+public | emailactivities | customer_id | uuid
+public | emailactivities | kind | character varying
+public | emailactivities | ip | character varying
+public | emailactivities | created_date | timestamp without time zone
+public | emailactivities | modified_date | timestamp without time zone
+public | emailhistory | id | uuid
+public | emailhistory | sender | character varying
+public | emailhistory | recipient | character varying
+public | emailhistory | kind | character varying
+public | emailhistory | subject | character varying
+public | emailhistory | created_date | timestamp without time zone
+public | emailhistory | modified_date | timestamp without time zone
+public | fakesteadymdappointments | id | integer
+public | fakesteadymdappointments | provider | character varying
+public | fakesteadymdappointments | patient | character varying
+public | fakesteadymdappointments | patient_id | character varying
+public | fakesteadymdappointments | provider_id | character varying
+public | fakesteadymdappointments | appointment_date | timestamp with time zone
+public | fakesteadymdappointments | zoom_url | character varying
+public | fakesteadymdappointments | status | character varying
+public | fakesteadymdappointments | created_date | timestamp without time zone
+public | fakesteadymdappointments | modified_date | timestamp without time zone
+public | genotypevalues | id | uuid
+public | genotypevalues | customer_id | uuid
+public | genotypevalues | variant_id | uuid
+public | genotypevalues | sample_id | character varying
+public | genotypevalues | genotype_value_1 | integer
+public | genotypevalues | genotype_value_2 | integer
+public | genotypevalues | gencall_score | double precision
+public | genotypevalues | imputed | boolean
+public | genotypevalues | format_string | jsonb
+public | genotypevalues | info_string | jsonb
+public | genotypevalues | created_date | timestamp without time zone
+public | genotypevalues | modified_date | timestamp without time zone
+public | hormones | id | uuid
+public | hormones | name | character varying
+public | hormones | created_date | timestamp without time zone
+public | hormones | modified_date | timestamp without time zone
+public | hormonevalues | id | uuid
+public | hormonevalues | customer_id | uuid
+public | hormonevalues | hormone_id | uuid
+public | hormonevalues | sample_id | character varying
+public | hormonevalues | hormone_value | double precision
+public | hormonevalues | ref_high | double precision
+public | hormonevalues | ref_low | double precision
+public | hormonevalues | created_date | timestamp without time zone
+public | hormonevalues | modified_date | timestamp without time zone
+public | hubspottenants | id | uuid
+public | hubspottenants | hubspot_list_id | integer
+public | hubspottenants | customer_id | uuid
+public | hubspottenants | created_date | timestamp without time zone
+public | hubspottenants | modified_date | timestamp without time zone
+public | medicalbiosubmissions | id | uuid
+public | medicalbiosubmissions | submission_id | character varying
+public | medicalbiosubmissions | jotform_form_id | character varying
+public | medicalbiosubmissions | customer_id | uuid
+public | medicalbiosubmissions | details | text
+public | medicalbiosubmissions | parameters | text
+public | medicalbiosubmissions | ip | character varying
+public | medicalbiosubmissions | completion | integer
+public | medicalbiosubmissions | elapsed_time | integer
+public | medicalbiosubmissions | created_date | timestamp without time zone
+public | medicalbiosubmissions | modified_date | timestamp without time zone
+public | medicalhistory | id | uuid
+public | medicalhistory | customer_id | uuid
+public | medicalhistory | medical_history_form | jsonb
+public | medicalhistory | ip | character varying
+public | medicalhistory | notes | text
+public | medicalhistory | created_date | timestamp without time zone
+public | medicalhistory | completed_date | timestamp without time zone
+public | medicalhistory | adyn_form_id | uuid
+public | medicalhistory | modified_date | timestamp without time zone
+public | medicalhistoryhistory | id | uuid
+public | medicalhistoryhistory | medical_history_id | uuid
+public | medicalhistoryhistory | new_values | jsonb
+public | medicalhistoryhistory | created_date | timestamp without time zone
+public | orderhistory | id | uuid
+public | orderhistory | order_id | uuid
+public | orderhistory | new_values | jsonb
+public | orderhistory | created_date | timestamp without time zone
+public | orders | id | uuid
+public | orders | friendly_order_id | character varying
+public | orders | stripe_customer_id | character varying
+public | orders | customer_id | uuid
+public | orders | stripe_invoice_item_id | character varying
+public | orders | stripe_invoice_id | character varying
+public | orders | activation_code | character varying
+public | orders | activated | boolean
+public | orders | activation_date | timestamp without time zone
+public | orders | por_approved | boolean
+public | orders | name | character varying
+public | orders | sku | character varying
+public | orders | item_description | character varying
+public | orders | package_unit | character varying
+public | orders | package_unit_quantity | integer
+public | orders | allied_order_number | character varying
+public | orders | allied_order_date | timestamp without time zone
+public | orders | status | character varying
+public | orders | date_order_placed | timestamp without time zone
+public | orders | date_order_paid | timestamp without time zone
+public | orders | status_checked | boolean
+public | orders | ip | character varying
+public | orders | created_date | timestamp without time zone
+public | orders | modified_date | timestamp without time zone
+public | orders | adyn_approved | boolean
+public | orders | suspended | boolean
+public | orders | suspended_reason | character varying
+public | orders_approvers | approver_id | uuid
+public | orders_approvers | order_id | uuid
+public | orders_approvers | status | boolean
+public | orders_approvers | role | integer
+public | orders_approvers | created_date | timestamp without time zone
+public | orderstatuses | id | uuid
+public | orderstatuses | order_id | uuid
+public | orderstatuses | old_status | character varying
+public | orderstatuses | new_status | character varying
+public | orderstatuses | created_date | timestamp without time zone
+public | paymentissues | customer_id | uuid
+public | paymentissues | stripe_customer_id | character varying
+public | paymentissues | stripe_invoice_id | character varying
+public | paymentissues | status | character varying
+public | paymentissues | details | text
+public | paymentissues | created_date | timestamp without time zone
+public | profilecompletions | id | uuid
+public | profilecompletions | customer_id | uuid
+public | profilecompletions | complete | boolean
+public | profilecompletions | created_date | timestamp without time zone
+public | profilecompletions | modified_date | timestamp without time zone
+public | resultvalues | id | uuid
+public | resultvalues | dna_sample_id | character varying
+public | resultvalues | hormone_sample_id | character varying
+public | resultvalues | medbio_1_id | uuid
+public | resultvalues | medbio_2_id | uuid
+public | resultvalues | medbio_3_id | uuid
+public | resultvalues | medbio_4_id | uuid
+public | resultvalues | version | integer
+public | resultvalues | pipeline_output | jsonb
+public | resultvalues | values | jsonb
+public | resultvalues | created_date | timestamp without time zone
+public | resultvalues | por_approved | boolean
+public | resultvalues | modified_date | timestamp without time zone
+public | resultvalues | adyn_approved | boolean
+public | resultvalues | customer_viewed_date | timestamp without time zone
+public | resultvalues | rx_details | text
+public | resultvalues | background_notes | jsonb
+public | resultvalues | suspended | boolean
+public | resultvalues | suspended_reason | character varying
+public | resultvalues_approvers | approver_id | uuid
+public | resultvalues_approvers | result_values_id | uuid
+public | resultvalues_approvers | status | boolean
+public | resultvalues_approvers | role | integer
+public | resultvalues_approvers | created_date | timestamp without time zone
+public | resultvalueshistory | id | uuid
+public | resultvalueshistory | result_values_id | uuid
+public | resultvalueshistory | dna_sample_id | character varying
+public | resultvalueshistory | hormone_sample_id | character varying
+public | resultvalueshistory | medbio_1_id | uuid
+public | resultvalueshistory | medbio_2_id | uuid
+public | resultvalueshistory | medbio_3_id | uuid
+public | resultvalueshistory | medbio_4_id | uuid
+public | resultvalueshistory | version | integer
+public | resultvalueshistory | por_approved | boolean
+public | resultvalueshistory | adyn_approved | boolean
+public | resultvalueshistory | suspended | boolean
+public | resultvalueshistory | suspended_reason | character varying
+public | resultvalueshistory | customer_viewed_date | timestamp without time zone
+public | resultvalueshistory | created_date | timestamp without time zone
+public | rxmatches | id | uuid
+public | rxmatches | rx_order_id | uuid
+public | rxmatches | rx_packed_id | uuid
+public | rxmatches | rx_shipments_id | uuid
+public | rxmatches | status | character varying
+public | rxmatches | matcher_id | uuid
+public | rxmatches | resolution | character varying
+public | rxmatches | reason_for_no_charge | character varying
+public | rxmatches | created_date | timestamp without time zone
+public | rxmatches | modified_date | timestamp without time zone
+public | rxmatchhistory | id | uuid
+public | rxmatchhistory | rxmatch_id | uuid
+public | rxmatchhistory | new_values | jsonb
+public | rxmatchhistory | created | timestamp without time zone
+public | rxorderhistory | id | uuid
+public | rxorderhistory | rxorder_id | uuid
+public | rxorderhistory | new_values | jsonb
+public | rxorderhistory | created_date | timestamp without time zone
+public | rxorders | id | uuid
+public | rxorders | friendly_order_id | character varying
+public | rxorders | customer_id | uuid
+public | rxorders | stripe_customer_id | character varying
+public | rxorders | status | character varying
+public | rxorders | prescriber_id | uuid
+public | rxorders | sku | character varying
+public | rxorders | quantity | integer
+public | rxorders | signetur | character varying
+public | rxorders | note_to_pharmacy | character varying
+public | rxorders | bc_prescribed | boolean
+public | rxorders | rx_submitted_to_adyn_pharmacy | boolean
+public | rxorders | refills_allowed | integer
+public | rxorders | customer_cost | numeric
+public | rxorders | stripe_price_id | character varying
+public | rxorders | stripe_invoice_item_id | character varying
+public | rxorders | stripe_invoice_id | character varying
+public | rxorders | date_order_placed | timestamp without time zone
+public | rxorders | date_order_paid | timestamp without time zone
+public | rxorders | created_date | timestamp without time zone
+public | rxorders | modified_date | timestamp without time zone
+public | rxorders | days_supply | integer
+public | rxorders | customer_approved | boolean
+public | rxorders | adyn_approved | boolean
+public | rxorders | customer_disapproved_reason | character varying
+public | rxorders | adyn_disapproved_reason | character varying
+public | rxorders | suspended | boolean
+public | rxorders | suspended_reason | character varying
+public | rxorders | customer_visibility | boolean
+public | rxorders | appointment_id | uuid
+public | rxorders_approvers | approver_id | uuid
+public | rxorders_approvers | rx_order_id | uuid
+public | rxorders_approvers | status | boolean
+public | rxorders_approvers | role | integer
+public | rxorders_approvers | created_date | timestamp without time zone
+public | rxorders_resultvalues | rx_order_id | uuid
+public | rxorders_resultvalues | result_values_id | uuid
+public | rxorders_resultvalues | created_date | timestamp without time zone
+public | rxorders_resultvalues | modified_date | timestamp without time zone
+public | rxpacked | id | uuid
+public | rxpacked | shipment_order | character varying
+public | rxpacked | order_receipt_date_time | timestamp without time zone
+public | rxpacked | rx_number | character varying
+public | rxpacked | fill_number | character varying
+public | rxpacked | qty_req | double precision
+public | rxpacked | qty_left | double precision
+public | rxpacked | ship_to_state | character varying
+public | rxpacked | ship_to_zip_code | character varying
+public | rxpacked | packed_date_time | timestamp without time zone
+public | rxpacked | ship_date_time | timestamp without time zone
+public | rxpacked | bin_number | character varying
+public | rxpacked | patient_amount_if_cash_or_house_charge | double precision
+public | rxpacked | patient_copay_if_insured | double precision
+public | rxpacked | primary_ins_name | character varying
+public | rxpacked | primary_ins_bin | character varying
+public | rxpacked | primary_ins_pcn | character varying
+public | rxpacked | primary_ins_rx_group | character varying
+public | rxpacked | primary_ins_plan_paid_amount | double precision
+public | rxpacked | primary_ins_copay | double precision
+public | rxpacked | primary_ins_disp_fee | double precision
+public | rxpacked | sec_ins_name | character varying
+public | rxpacked | sec_ins_bin | character varying
+public | rxpacked | sec_ins_pcn | character varying
+public | rxpacked | sec_ins_rx_group | character varying
+public | rxpacked | sec_ins_plan_paid_amount | double precision
+public | rxpacked | sec_ins_copay | double precision
+public | rxpacked | sec_ins_disp_fee | double precision
+public | rxpacked | drug_acquisition_cost | double precision
+public | rxpacked | shipping_carrier_name | character varying
+public | rxpacked | fill_date | timestamp without time zone
+public | rxpacked | tracking_number | character varying
+public | rxpacked | created_date | timestamp without time zone
+public | rxpacked | modified_date | timestamp without time zone
+public | rxpacked | ship_to_address1 | character varying
+public | rxpacked | ship_to_address2 | character varying
+public | rxpacked | ship_to_city | character varying
+public | rxshipmenthistory | id | uuid
+public | rxshipmenthistory | rxshipment_id | uuid
+public | rxshipmenthistory | new_values | jsonb
+public | rxshipmenthistory | created_date | timestamp without time zone
+public | rxshipments | id | uuid
+public | rxshipments | customer_id | uuid
+public | rxshipments | order_number | character varying
+public | rxshipments | rx_order_id | uuid
+public | rxshipments | email_id | character varying
+public | rxshipments | tracking_number | character varying
+public | rxshipments | date_shipped | timestamp without time zone
+public | rxshipments | shipped_via | character varying
+public | rxshipments | first_name | character varying
+public | rxshipments | last_name | character varying
+public | rxshipments | address1 | character varying
+public | rxshipments | address2 | character varying
+public | rxshipments | city | character varying
+public | rxshipments | state | character varying
+public | rxshipments | zip | character varying
+public | rxshipments | status | character varying
+public | rxshipments | created_date | timestamp without time zone
+public | rxshipments | modified_date | timestamp without time zone
+public | rxshipments | status_checked | boolean
+public | rxshipments | details | text
+public | rxshipments | delivered_to_customer_date | timestamp without time zone
+public | rxwritten | id | uuid
+public | rxwritten | rx_number | character varying
+public | rxwritten | rx_written_date_time | timestamp without time zone
+public | rxwritten | rx_creation_date_time | timestamp without time zone
+public | rxwritten | rx_expiration_date_time | timestamp without time zone
+public | rxwritten | script_status | character varying
+public | rxwritten | ndc | character varying
+public | rxwritten | patient_id | character varying
+public | rxwritten | zip_code | character varying
+public | rxwritten | total_fills | double precision
+public | rxwritten | total_qty_authorized | double precision
+public | rxwritten | rx_source | character varying
+public | rxwritten | auto_refill | character varying
+public | rxwritten | npi_provider_number | character varying
+public | rxwritten | created_date | timestamp without time zone
+public | rxwritten | modified_date | timestamp without time zone
+public | rxwritten | customer_first_name | character varying
+public | rxwritten | customer_last_name | character varying
+public | rxwritten | customer_dob | date
+public | rxwritten | customer_email | character varying
+public | samplehistory | id | uuid
+public | samplehistory | sample_id | character varying
+public | samplehistory | new_values | jsonb
+public | samplehistory | created | timestamp without time zone
+public | samples | id | character varying
+public | samples | shipment_id | uuid
+public | samples | kind | character varying
+public | samples | received_by_lab_date | timestamp without time zone
+public | samples | processed_by_lab_date | timestamp without time zone
+public | samples | file_name | character varying
+public | samples | file_url | character varying
+public | samples | file_size | integer
+public | samples | downloaded_by_adyn_date | timestamp without time zone
+public | samples | analyzed_by_adyn_date | timestamp without time zone
+public | samples | created_date | timestamp without time zone
+public | samples | modified_date | timestamp without time zone
+public | samples | status | character varying
+public | shipments | id | uuid
+public | shipments | order_id | uuid
+public | shipments | tracking_number | character varying
+public | shipments | date_shipped | timestamp without time zone
+public | shipments | shipped_via | character varying
+public | shipments | status | character varying
+public | shipments | return_status1 | character varying
+public | shipments | return_status2 | character varying
+public | shipments | details | text
+public | shipments | return_details1 | text
+public | shipments | return_details2 | text
+public | shipments | return_tracking_number1 | character varying
+public | shipments | return_tracking_number2 | character varying
+public | shipments | secondary_kit_id1 | character varying
+public | shipments | secondary_kit_id2 | character varying
+public | shipments | created_date | timestamp without time zone
+public | shipments | modified_date | timestamp without time zone
+public | shipments | delivered_to_customer_date | timestamp without time zone
+public | shipments | delivered_to_facility1_date | timestamp without time zone
+public | shipments | delivered_to_facility2_date | timestamp without time zone
+public | shipments | status_checked | boolean
+public | shipments | expiration_date1 | timestamp without time zone
+public | shipments | expiration_date2 | timestamp without time zone
+public | shipments | device_id | character varying
+public | shipments | shipped_to_facility1_date | timestamp without time zone
+public | shipments | shipped_to_facility2_date | timestamp without time zone
+public | shipments_replacements | old_shipment_id | uuid
+public | shipments_replacements | new_stripe_invoice_item_id | character varying
+public | shipments_replacements | replacer_id | uuid
+public | shipments_replacements | reason | character varying
+public | shipments_replacements | created_date | timestamp without time zone
+public | shipments_replacements | reimbursed_date | timestamp without time zone
+public | shipmentstatuses | id | uuid
+public | shipmentstatuses | shipment_id | uuid
+public | shipmentstatuses | status | character varying
+public | shipmentstatuses | return_status1 | character varying
+public | shipmentstatuses | return_status2 | character varying
+public | shipmentstatuses | created_date | timestamp without time zone
+public | shippingaddresses | id | uuid
+public | shippingaddresses | customer_id | uuid
+public | shippingaddresses | first_name | character varying
+public | shippingaddresses | last_name | character varying
+public | shippingaddresses | address1 | character varying
+public | shippingaddresses | address2 | character varying
+public | shippingaddresses | city | character varying
+public | shippingaddresses | state | character varying
+public | shippingaddresses | zip | character varying
+public | shippingaddresses | country | character varying
+public | shippingaddresses | delivery_instructions | text
+public | shippingaddresses | is_valid | boolean
+public | shippingaddresses | created_date | timestamp without time zone
+public | shippingaddresses | modified_date | timestamp without time zone
+public | shippingaddresses_editors | editor_id | uuid
+public | shippingaddresses_editors | shipping_address_id | uuid
+public | shippingaddresses_editors | new_values | jsonb
+public | shippingaddresses_editors | role | integer
+public | shippingaddresses_editors | created_date | timestamp without time zone
+public | variants | id | uuid
+public | variants | adyn_id | character varying
+public | variants | gsa_id | character varying
+public | variants | chrom | integer
+public | variants | position | integer
+public | variants | ref_value | integer
+public | variants | allele_map | jsonb
