@@ -402,3 +402,1483 @@ This directly supports your goal of measuring the share of report viewers who bo
 
 “Where is follow-up recommendation information recorded, and how should we interpret the satisfaction fields?”
 The follow-up flag is missing for all 219 qualifying records, and many satisfaction values are missing or zero. Clarifying these fields will help you assess whether follow-up recommendations and satisfaction are associated with repeat visits.
+
+
+## 10-23-2026 Analysis 
+
+```{r}
+sku_counts <- dbGetQuery(con, "
+  SELECT
+    sku,
+    COUNT(*) AS appointment_count
+  FROM appointments
+  GROUP BY sku
+  ORDER BY appointment_count DESC
+")
+
+sku_counts
+```
+
+```{r}
+dbListFields(con, "appointmentselections")
+
+# Check how SKU availability differs by appointment status
+sku_status <- dbGetQuery(con, "
+  SELECT
+    status,
+    sku,
+    COUNT(*) AS appointment_count
+  FROM appointments
+  GROUP BY status, sku
+  ORDER BY status, appointment_count DESC
+")
+
+sku_status
+```
+
+```{r}
+selection_counts <- dbGetQuery(con, "
+  SELECT
+    kind,
+    active,
+    COUNT(*) AS selection_count
+  FROM appointmentselections
+  GROUP BY kind, active
+  ORDER BY kind, active
+")
+
+selection_counts
+```
+
+```{r}
+selection_check <- dbGetQuery(con, "
+  SELECT
+    COUNT(*) AS selection_records,
+    COUNT(appointment_id) AS records_with_appointment,
+    COUNT(DISTINCT appointment_id) AS unique_appointments
+  FROM appointmentselections
+  WHERE active = TRUE
+")
+
+selection_check
+```
+
+```{r}
+visits <- dbGetQuery(con, "
+  SELECT id, customer_id, appointment_date,
+         status, appointment_outcome, sku
+  FROM appointments
+")
+```
+
+```{r}
+visits$visit_type <- "Unknown"
+
+visits$visit_type[visits$sku %in% "VC-SYNC-15CHRG"] <-
+  "15-minute video"
+
+visits$visit_type[visits$sku %in% "VC-SYNC-25CHRG"] <-
+  "25-minute video"
+
+visits$visit_type[visits$sku %in%
+  c("VC-ASYNC-ADCHRG", "VC-ASYNC-ADFREE")] <- "Async"
+
+table(visits$visit_type)
+```
+
+```{r}
+visits$visit_type[visits$sku %in%
+  c("VC-ASYC-ADCHRG", "VC-ASYC-ADFREE")] <- "Async"
+
+table(visits$visit_type)
+```
+
+```{r}
+completed_visits <- subset(
+  visits,
+  status == "completed" &
+    appointment_outcome == "visit complete" &
+    !is.na(customer_id)
+)
+
+table(completed_visits$visit_type)
+```
+
+
+```{r}
+count_patient_visits <- function(data) {
+  counts <- aggregate(
+    id ~ customer_id + visit_type,
+    data = data,
+    FUN = length
+  )
+
+  names(counts)[3] <- "visit_count"
+  return(counts)
+}
+
+patient_counts <- count_patient_visits(completed_visits)
+
+with(patient_counts, table(visit_count, visit_type))
+```
+
+```{r}
+visit_span <- function(dates) {
+  dates <- dates[!is.na(dates)]
+
+  if (length(dates) < 2) return(NA_real_)
+
+  return(as.numeric(
+    difftime(max(dates), min(dates), units = "days")
+  ))
+}
+
+patient_spans <- aggregate(
+  x = list(span_days = completed_visits$appointment_date),
+  by = list(
+    customer_id = completed_visits$customer_id,
+    visit_type = completed_visits$visit_type
+  ),
+  FUN = visit_span
+)
+
+with(patient_spans, tapply(span_days, visit_type, summary))
+```
+
+```{r}
+options(scipen = 999)
+
+with(patient_spans, tapply(span_days, visit_type, summary))
+```
+
+```{r}
+plot_spans <- subset(patient_spans, !is.na(span_days))
+
+stripchart(
+  span_days ~ visit_type,
+  data = plot_spans,
+  method = "jitter",
+  vertical = TRUE,
+  pch = 19,
+  col = "steelblue",
+  main = "Visit Spans by Type\nStaging Data",
+  xlab = "Visit type",
+  ylab = "Days between first and last visits",
+  cex.axis = 0.8
+)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(plot_spans, aes(x = span_days, y = 1, color = visit_type)) +
+  geom_point(
+    size = 3,
+    alpha = 0.8,
+    position = position_jitter(width = 0, height = 0.12, seed = 1)
+  ) +
+  facet_wrap(~ visit_type, scales = "free_x", ncol = 1) +
+  scale_color_manual(values = c(
+    "15-minute video" = "#2563EB",
+    "Async" = "#0D9488",
+    "Unknown" = "#64748B"
+  )) +
+  scale_y_continuous(breaks = NULL) +
+  labs(
+    title = "How long do patients' visits span?",
+    subtitle = "First-to-last completed visit within each type",
+    x = "Span in days",
+    y = NULL,
+    caption = paste(
+      "Staging data • Each dot represents one patient ID within a visit type.",
+      "Panels use different horizontal scales.",
+      "25-minute video: no IDs with two usable dates.",
+      sep = "\n"
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold")
+  )
+```
+
+```{r}
+span_summary <- aggregate(
+  span_days ~ visit_type,
+  data = plot_spans,
+  FUN = median
+)
+
+span_summary$n <- as.numeric(
+  table(plot_spans$visit_type)[span_summary$visit_type]
+)
+
+span_summary$label <- paste0(
+  round(span_summary$span_days, 1),
+  " days (n = ", span_summary$n, ")"
+)
+
+ggplot(span_summary, aes(x = visit_type, y = span_days)) +
+  geom_col(fill = "#3182BD", width = 0.55) +
+  geom_text(aes(label = label), hjust = -0.1, size = 4) +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
+  labs(
+    title = "Median Visit Span by Type",
+    subtitle = "Days between first and last completed visits",
+    x = NULL,
+    y = "Median span in days",
+    caption = "Staging data; only IDs with at least two usable dates.\n25-minute video: no eligible IDs. Unknown: visit type unavailable."
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+first_gap <- function(dates) {
+  dates <- sort(dates[!is.na(dates)])
+
+  if (length(dates) < 2) return(NA_real_)
+
+  return(as.numeric(
+    difftime(dates[2], dates[1], units = "days")
+  ))
+}
+
+patient_gaps <- aggregate(
+  x = list(gap_days = completed_visits$appointment_date),
+  by = list(
+    customer_id = completed_visits$customer_id,
+    visit_type = completed_visits$visit_type
+  ),
+  FUN = first_gap
+)
+
+with(patient_gaps, tapply(gap_days, visit_type, summary))
+```
+
+```{r}
+usable_gaps <- subset(patient_gaps, !is.na(gap_days))
+
+gap_summary <- aggregate(
+  gap_days ~ visit_type,
+  data = usable_gaps,
+  FUN = median
+)
+
+gap_summary$gap_days <- round(gap_summary$gap_days, 3)
+
+gap_summary
+```
+
+```{r}
+booking_dates <- dbGetQuery(con, "
+  SELECT id, customer_id, sku,
+         created_date, date_order_placed
+  FROM appointments
+")
+
+c(
+  appointments = nrow(booking_dates),
+  created_date_recorded = sum(!is.na(booking_dates$created_date)),
+  order_date_recorded = sum(!is.na(booking_dates$date_order_placed))
+)
+```
+
+```{r}
+report_links <- dbGetQuery(con, "
+  SELECT
+    r.id AS report_id,
+    r.customer_viewed_date,
+    o.customer_id
+  FROM resultvalues AS r
+  LEFT JOIN samples AS s
+    ON r.hormone_sample_id = s.id
+  LEFT JOIN shipments AS sh
+    ON s.shipment_id = sh.id
+  LEFT JOIN orders AS o
+    ON sh.order_id = o.id
+  WHERE r.customer_viewed_date IS NOT NULL
+")
+
+c(
+  rows = nrow(report_links),
+  unique_reports = length(unique(report_links$report_id)),
+  missing_customer = sum(is.na(report_links$customer_id))
+)
+```
+
+```{r}
+report_bookings <- merge(
+  report_links,
+  booking_dates,
+  by = "customer_id"
+)
+
+report_bookings$days_to_booking <- as.numeric(
+  difftime(
+    report_bookings$created_date,
+    report_bookings$customer_viewed_date,
+    units = "days"
+  )
+)
+
+c(
+  before_report = sum(report_bookings$days_to_booking < 0, na.rm = TRUE),
+  on_or_after_report = sum(report_bookings$days_to_booking >= 0, na.rm = TRUE)
+)
+```
+
+```{r}
+later_bookings <- subset(
+  report_bookings,
+  days_to_booking >= 0
+)
+
+first_bookings <- aggregate(
+  days_to_booking ~ report_id,
+  data = later_bookings,
+  FUN = min
+)
+
+report_waits <- merge(
+  report_links,
+  first_bookings,
+  by = "report_id",
+  all.x = TRUE
+)
+
+c(
+  with_later_booking = sum(!is.na(report_waits$days_to_booking)),
+  without_later_booking = sum(is.na(report_waits$days_to_booking))
+)
+
+summary(report_waits$days_to_booking)
+```
+
+```{r}
+sorted_bookings <- later_bookings[
+  order(later_bookings$days_to_booking, later_bookings$id),
+]
+
+first_booking_details <- sorted_bookings[
+  !duplicated(sorted_bookings$report_id),
+]
+
+first_booking_details$visit_type <- visits$visit_type[
+  match(first_booking_details$id, visits$id)
+]
+
+table(first_booking_details$visit_type, useNA = "ifany")
+
+with(
+  first_booking_details,
+  tapply(days_to_booking, visit_type, summary)
+)
+```
+
+```{r}
+unknown_bookings <- subset(
+  first_booking_details,
+  visit_type == "Unknown"
+)
+
+table(unknown_bookings$sku, useNA = "ifany")
+```
+
+```{r}
+reports_per_customer <- table(report_links$customer_id)
+
+table(reports_per_customer)
+```
+
+```{r}
+booking_uses <- table(first_booking_details$id)
+
+c(
+  reports_with_booking = nrow(first_booking_details),
+  unique_appointments = length(booking_uses),
+  appointments_used_more_than_once = sum(booking_uses > 1)
+)
+```
+
+```{r}
+video_customers <- unique(
+  completed_visits$customer_id[
+    completed_visits$visit_type %in%
+      c("15-minute video", "25-minute video")
+  ]
+)
+
+async_customers <- unique(
+  completed_visits$customer_id[
+    completed_visits$visit_type == "Async"
+  ]
+)
+
+length(intersect(video_customers, async_customers))
+```
+
+```{r}
+both_customers <- intersect(video_customers, async_customers)
+
+video_visits <- subset(
+  completed_visits,
+  customer_id %in% both_customers &
+    visit_type %in% c("15-minute video", "25-minute video")
+)
+
+async_visits <- subset(
+  completed_visits,
+  customer_id %in% both_customers &
+    visit_type == "Async"
+)
+
+visit_pairs <- merge(
+  video_visits,
+  async_visits,
+  by = "customer_id",
+  suffixes = c("_video", "_async")
+)
+
+visit_pairs$gap_days <- as.numeric(
+  difftime(
+    visit_pairs$appointment_date_async,
+    visit_pairs$appointment_date_video,
+    units = "days"
+  )
+)
+
+after_video <- subset(visit_pairs, gap_days > 0)
+
+length(unique(after_video$customer_id))
+summary(after_video$gap_days)
+```
+
+```{r}
+nearest_video <- after_video[
+  order(after_video$gap_days, after_video$id_video),
+]
+
+nearest_video <- nearest_video[
+  !duplicated(nearest_video$id_async),
+]
+
+table(nearest_video$visit_type_video)
+
+summary(nearest_video$gap_days)
+```
+
+```{r}
+video_async_summary <- aggregate(
+  gap_days ~ visit_type_video,
+  data = nearest_video,
+  FUN = median
+)
+
+names(video_async_summary) <- c(
+  "preceding_video_type", "median_gap_days"
+)
+
+video_async_summary$median_gap_days <- round(
+  video_async_summary$median_gap_days, 2
+)
+
+video_async_summary
+```
+
+```{r}
+video_async_summary$async_visits <- nrow(nearest_video)
+
+video_async_summary$customer_ids <- length(
+  unique(nearest_video$customer_id)
+)
+
+video_async_summary
+```
+
+```{r}
+satisfaction <- dbGetQuery(con, "
+  SELECT id, patient_interaction_satisfaction
+  FROM appointments
+")
+
+satisfaction_visits <- merge(
+  completed_visits,
+  satisfaction,
+  by = "id",
+  all.x = TRUE
+)
+```
+
+```{r}
+satisfaction_visits$score_status <- "Recorded"
+
+blank <- is.na(
+  satisfaction_visits$patient_interaction_satisfaction
+)
+
+satisfaction_visits$score_status[blank] <- "Expectation unknown"
+
+satisfaction_visits$score_status[
+  blank & satisfaction_visits$visit_type %in%
+    c("15-minute video", "25-minute video")
+] <- "Missing"
+
+satisfaction_visits$score_status[
+  blank & satisfaction_visits$visit_type == "Async"
+] <- "Not expected"
+
+with(
+  satisfaction_visits,
+  table(visit_type, score_status)
+)
+```
+
+```{r}
+label_satisfaction <- function(data) {
+  data$score_status <- "Recorded"
+
+  blank <- is.na(data$patient_interaction_satisfaction)
+
+  data$score_status[blank] <- "Expectation unknown"
+
+  data$score_status[
+    blank & data$visit_type %in%
+      c("15-minute video", "25-minute video")
+  ] <- "Missing"
+
+  data$score_status[
+    blank & data$visit_type == "Async"
+  ] <- "Not expected"
+
+  return(data)
+}
+
+satisfaction_visits <- label_satisfaction(satisfaction_visits)
+
+with(satisfaction_visits, table(visit_type, score_status))
+```
+
+```{r}
+satisfaction_table <- with(
+  satisfaction_visits,
+  table(visit_type, score_status)
+)
+
+knitr::kable(satisfaction_table)
+```
+
+```{r}
+get_report_waits <- function(reports, bookings) {
+
+  matched <- merge(reports, bookings, by = "customer_id")
+
+  matched$days_to_booking <- as.numeric(
+    difftime(
+      matched$created_date,
+      matched$customer_viewed_date,
+      units = "days"
+    )
+  )
+
+  later <- subset(matched, days_to_booking >= 0)
+
+  # Keep the earliest later booking for each report
+  later <- later[order(later$days_to_booking, later$id), ]
+  first <- later[!duplicated(later$report_id), ]
+
+  # Include reports with no later booking
+  result <- merge(
+    reports,
+    first[, c("report_id", "id", "sku", "days_to_booking")],
+    by = "report_id",
+    all.x = TRUE
+  )
+
+  return(result)
+}
+```
+
+```{r}
+report_waits <- get_report_waits(report_links, booking_dates)
+
+c(
+  total_reports = nrow(report_waits),
+  with_later_booking = sum(!is.na(report_waits$days_to_booking)),
+  without_later_booking = sum(is.na(report_waits$days_to_booking))
+)
+
+summary(report_waits$days_to_booking)
+```
+
+```{r}
+library(ggplot2)
+
+plot_visit_counts <- function(data) {
+
+  ggplot(data, aes(x = visit_count)) +
+    geom_bar(fill = "#3182BD", width = 0.7) +
+    facet_wrap(~ visit_type, ncol = 2) +
+    scale_x_continuous(
+      breaks = c(1, 2, 3, 5, 10, 15, 20, 30, 36)
+    ) +
+    labs(
+      title = "How often did customers use virtual care?",
+      subtitle = "Completed visits per customer within each visit type",
+      x = "Number of completed visits",
+      y = "Number of customer IDs",
+      caption = paste(
+        "Staging data; may include testing.",
+        "A customer can appear in more than one panel.",
+        "Unknown means visit type could not be identified.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.minor = element_blank(),
+      strip.text = element_text(face = "bold"),
+      plot.title = element_text(face = "bold")
+    )
+}
+
+plot_visit_counts(patient_counts)
+```
+
+```{r}
+second_to_third <- function(dates) {
+
+  dates <- sort(dates[!is.na(dates)])
+
+  if (length(dates) < 3) {
+    return(NA_real_)
+  }
+
+  return(as.numeric(
+    difftime(dates[3], dates[2], units = "days")
+  ))
+}
+
+later_gaps <- aggregate(
+  x = list(gap_days = completed_visits$appointment_date),
+  by = list(
+    customer_id = completed_visits$customer_id,
+    visit_type = completed_visits$visit_type
+  ),
+  FUN = second_to_third
+)
+
+with(
+  later_gaps,
+  tapply(gap_days, visit_type, function(x) sum(!is.na(x)))
+)
+
+with(later_gaps, tapply(gap_days, visit_type, summary))
+```
+
+```{r}
+summarize_gap <- function(gaps) {
+  usable <- gaps[!is.na(gaps)]
+
+  median_days <- NA_real_
+
+  if (length(usable) > 0) {
+    median_days <- median(usable)
+  }
+
+  return(c(
+    customer_ids = length(usable),
+    median_gap_days = round(median_days, 3)
+  ))
+}
+
+gap_table <- t(sapply(
+  split(later_gaps$gap_days, later_gaps$visit_type),
+  summarize_gap
+))
+
+knitr::kable(
+  gap_table,
+  caption = "Second-to-third completed visit gaps — staging data"
+)
+```
+
+```{r}
+report_waits$wait_group <- cut(
+  report_waits$days_to_booking,
+  breaks = c(0, 1, 7, 30, Inf),
+  labels = c(
+    "Within 1 day",
+    "Over 1–7 days",
+    "Over 7–30 days",
+    "Over 30 days"
+  ),
+  include.lowest = TRUE
+)
+
+# Keep reports without a later booking visible
+report_waits$wait_group <- as.character(report_waits$wait_group)
+
+report_waits$wait_group[
+  is.na(report_waits$days_to_booking)
+] <- "No later booking found"
+
+# Set the display order
+report_waits$wait_group <- factor(
+  report_waits$wait_group,
+  levels = c(
+    "Within 1 day",
+    "Over 1–7 days",
+    "Over 7–30 days",
+    "Over 30 days",
+    "No later booking found"
+  )
+)
+
+# Display the counts
+table(report_waits$wait_group)
+```
+
+```{r}
+plot_booking_waits <- function(data) {
+
+  ggplot(data, aes(x = wait_group)) +
+    geom_bar(fill = "#3182BD", width = 0.65) +
+    geom_text(
+      stat = "count",
+      aes(label = after_stat(count)),
+      hjust = -0.2
+    ) +
+    coord_flip() +
+    scale_y_continuous(
+      expand = expansion(mult = c(0, 0.15))
+    ) +
+    labs(
+      title = "Appointment creation after report viewing",
+      subtitle = "One observation per viewed report",
+      x = NULL,
+      y = "Number of reports",
+      caption = paste(
+        "Staging data; appointment creation is a booking-date proxy.",
+        "No later booking found refers to the available records.",
+        "One appointment can match multiple reports.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.major.y = element_blank())
+}
+
+plot_booking_waits(report_waits)
+```
+
+```{r}
+count_monthly_visits <- function(data) {
+
+  dated_visits <- subset(data, !is.na(appointment_date))
+
+  dated_visits$month <- as.Date(
+    format(dated_visits$appointment_date, "%Y-%m-01")
+  )
+
+  counts <- aggregate(
+    id ~ month + visit_type,
+    data = dated_visits,
+    FUN = length
+  )
+
+  names(counts)[3] <- "visits"
+
+  return(counts)
+}
+
+monthly_visits <- count_monthly_visits(completed_visits)
+```
+
+```{r}
+library(ggplot2)
+
+plot_monthly_visits <- function(data) {
+
+  ggplot(data, aes(x = month, y = visits)) +
+    geom_col(fill = "#3182BD", width = 25) +
+    facet_wrap(~ visit_type, ncol = 2) +
+    geom_vline(
+      xintercept = as.numeric(as.Date("2024-05-01")),
+      linetype = "dashed",
+      color = "#D55E00"
+    ) +
+    scale_x_date(
+      date_breaks = "1 year",
+      date_labels = "%Y"
+    ) +
+    labs(
+      title = "Monthly completed virtual-care visits",
+      subtitle = "Same scales across panels for comparison",
+      x = NULL,
+      y = "Completed visits",
+      caption = paste(
+        "Staging data; unknown means visit type was unavailable.",
+        "Orange dashed line marks May 2024:",
+        "the client indicated the spike likely reflects launch testing.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      strip.text = element_text(face = "bold"),
+      panel.grid.minor = element_blank()
+    )
+}
+
+plot_monthly_visits(monthly_visits)
+```
+
+```{r}
+monthly_table <- monthly_visits[
+  order(monthly_visits$visit_type, monthly_visits$month),
+]
+
+knitr::kable(
+  monthly_table,
+  col.names = c("Month", "Visit type", "Completed visits"),
+  caption = "Monthly completed visits — staging data"
+)
+```
+
+```{r}
+get_transitions <- function(data) {
+
+  data <- subset(data, !is.na(appointment_date))
+
+  data <- data[
+    order(data$customer_id, data$appointment_date, data$id),
+  ]
+
+  data$next_type <- ave(
+    data$visit_type,
+    data$customer_id,
+    FUN = function(x) c(x[-1], NA_character_)
+  )
+
+  data$next_date <- ave(
+    as.numeric(data$appointment_date),
+    data$customer_id,
+    FUN = function(x) c(x[-1], NA_real_)
+  )
+
+  # Exclude tied times because their order is uncertain
+  transitions <- subset(
+    data,
+    !is.na(next_type) &
+      next_date > as.numeric(appointment_date)
+  )
+
+  return(transitions)
+}
+
+transitions <- get_transitions(completed_visits)
+
+# Display counts for each sequence
+transition_table <- with(
+  transitions,
+  table(visit_type, next_type)
+)
+
+knitr::kable(
+  transition_table,
+  caption = "Consecutive completed visit types — staging data"
+)
+```
+
+
+
+## Virtual Care and Repeat Visits Analysis 
+
+1. Preparation Code 
+
+```{r}
+library(DBI)
+library(dplyr)
+library(ggplot2)
+
+care_appointments <- dbGetQuery(con, "
+  SELECT id, customer_id, appointment_date, created_date,
+         status, appointment_outcome, sku,
+         patient_interaction_satisfaction
+  FROM appointments
+")
+
+care_reports <- dbGetQuery(con, "
+  SELECT r.id AS report_id,
+         r.customer_viewed_date,
+         o.customer_id
+  FROM resultvalues AS r
+  LEFT JOIN samples AS s
+    ON r.hormone_sample_id = s.id
+  LEFT JOIN shipments AS sh
+    ON s.shipment_id = sh.id
+  LEFT JOIN orders AS o
+    ON sh.order_id = o.id
+  WHERE r.customer_viewed_date IS NOT NULL
+")
+```
+
+```{r}
+prepare_care <- function(data) {
+  data |>
+    mutate(
+      visit_type = case_when(
+        sku == "VC-SYNC-15CHRG" ~ "15-minute video",
+        sku == "VC-SYNC-25CHRG" ~ "25-minute video",
+        sku %in% c("VC-ASYC-ADCHRG", "VC-ASYC-ADFREE") ~ "Async",
+        TRUE ~ "Unknown"
+      )
+    )
+}
+
+care_appointments <- prepare_care(care_appointments)
+
+care_completed <- care_appointments |>
+  filter(
+    status == "completed",
+    appointment_outcome == "visit complete",
+    !is.na(customer_id)
+  )
+```
+
+
+2. Visit Counts and Time Spans 
+
+Question: How many completed visits does each distinct customer have, 
+and how much time do these visits cover within each type?
+
+```{r}
+care_span <- function(dates) {
+  dates <- dates[!is.na(dates)]
+
+  if (length(dates) < 2) return(NA_real_)
+
+  as.numeric(difftime(max(dates), min(dates), units = "days"))
+}
+
+care_median <- function(values) {
+  if (all(is.na(values))) return(NA_real_)
+
+  median(values, na.rm = TRUE)
+}
+
+count_care_visits <- function(data) {
+  data |>
+    group_by(customer_id, visit_type) |>
+    summarise(
+      visit_count = n(),
+      span_days = care_span(appointment_date),
+      .groups = "drop"
+    )
+}
+
+care_counts <- count_care_visits(care_completed)
+
+care_count_summary <- care_counts |>
+  group_by(visit_type) |>
+  summarise(
+    customer_ids = n(),
+    completed_visits = sum(visit_count),
+    repeat_customer_ids = sum(visit_count >= 2),
+    ids_with_usable_span = sum(!is.na(span_days)),
+    median_span_days = round(care_median(span_days), 2),
+    .groups = "drop"
+  )
+
+knitr::kable(care_count_summary)
+```
+
+```{r}
+plot_care_spans <- function(data) {
+
+  usable <- data |>
+    filter(!is.na(span_days))
+
+  ggplot(usable, aes(x = span_days, y = visit_type)) +
+    geom_point(
+      color = "#3182BD",
+      size = 3,
+      alpha = 0.7,
+      position = position_jitter(
+        width = 0,
+        height = 0.08,
+        seed = 1
+      )
+    ) +
+    labs(
+      title = "Time between first and last completed visits",
+      subtitle = "Each dot represents one customer within a visit type",
+      x = "Days from first to last visit",
+      y = NULL,
+      caption = paste(
+        "Staging data; requires at least two usable visit dates.",
+        "25-minute video: no eligible customers.",
+        "Small vertical offsets help separate overlapping dots.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+plot_care_spans(care_counts)
+```
+
+
+3. Completed Visits Per Customer 
+
+Question: Are customers represented mostly by one visit or by repeated visits? 
+
+```{r}
+plot_care_frequency <- function(data) {
+
+  plot_data <- data |>
+    mutate(
+      visit_group = case_when(
+        visit_count == 1 ~ "1",
+        visit_count == 2 ~ "2",
+        visit_count <= 5 ~ "3–5",
+        TRUE ~ "6+"
+      ),
+      visit_group = factor(
+        visit_group,
+        levels = c("1", "2", "3–5", "6+")
+      )
+    )
+
+  ggplot(plot_data, aes(x = visit_group)) +
+    geom_bar(fill = "#3182BD", width = 0.65) +
+    facet_wrap(~ visit_type, ncol = 2) +
+    labs(
+      title = "Completed visits per customer",
+      x = "Completed visits within this type",
+      y = "Number of customer IDs",
+      caption = paste(
+        "Staging data. Panels use the same scales.",
+        "A customer can appear in more than one panel."
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+plot_care_frequency(care_counts)
+```
+
+
+4. Time Between Visits (First-To-Second and Second-To-Third Gaps) 
+
+Question: How much time passes between repeat visits? 
+
+```{r}
+care_gap <- function(dates, visit_number) {
+  dates <- sort(dates[!is.na(dates)])
+
+  if (length(dates) < visit_number) return(NA_real_)
+
+  as.numeric(
+    difftime(
+      dates[visit_number],
+      dates[visit_number - 1],
+      units = "days"
+    )
+  )
+}
+
+calculate_care_gaps <- function(data) {
+  data |>
+    group_by(customer_id, visit_type) |>
+    summarise(
+      first_to_second = care_gap(appointment_date, 2),
+      second_to_third = care_gap(appointment_date, 3),
+      .groups = "drop"
+    )
+}
+
+care_gaps <- calculate_care_gaps(care_completed)
+
+care_gap_summary <- care_gaps |>
+  group_by(visit_type) |>
+  summarise(
+    ids_with_first_gap = sum(!is.na(first_to_second)),
+    median_first_gap_days = round(care_median(first_to_second), 3),
+    ids_with_second_gap = sum(!is.na(second_to_third)),
+    median_second_gap_days = round(care_median(second_to_third), 3),
+    .groups = "drop"
+  )
+
+knitr::kable(care_gap_summary)
+```
+
+```{r}
+plot_care_gaps <- function(data) {
+
+  first <- data |>
+    transmute(
+      visit_type,
+      interval = "First to second",
+      gap_days = first_to_second
+    )
+
+  second <- data |>
+    transmute(
+      visit_type,
+      interval = "Second to third",
+      gap_days = second_to_third
+    )
+
+  plot_data <- bind_rows(first, second) |>
+    filter(!is.na(gap_days))
+
+  ggplot(plot_data, aes(x = gap_days, y = visit_type)) +
+    geom_point(
+      color = "#3182BD",
+      size = 3,
+      alpha = 0.7,
+      position = position_jitter(
+        width = 0,
+        height = 0.08,
+        seed = 1
+      )
+    ) +
+    facet_wrap(~ interval, ncol = 1) +
+    labs(
+      title = "Time between completed visits",
+      subtitle = "Each dot is one customer's gap within a visit type",
+      x = "Days between visits",
+      y = NULL,
+      caption = paste(
+        "Staging data. Both panels use the same scales.",
+        "25-minute video: no eligible gaps.",
+        "Customers may contribute to both panels.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+plot_care_gaps(care_gaps)
+```
+
+
+5. Report Viewing To First Subsequent Booking 
+
+Question: How long after viewing a report was the first subsequent 
+appointment record created, and what type was it?
+
+```{r}
+get_care_report_waits <- function(reports, appointments) {
+
+  matched <- merge(
+    reports,
+    appointments[, c("customer_id", "id", "created_date", "visit_type")],
+    by = "customer_id"
+  )
+
+  first_bookings <- matched |>
+    mutate(
+      days_to_booking = as.numeric(
+        difftime(
+          created_date,
+          customer_viewed_date,
+          units = "days"
+        )
+      )
+    ) |>
+    filter(days_to_booking >= 0) |>
+    arrange(days_to_booking, id) |>
+    distinct(report_id, .keep_all = TRUE) |>
+    select(report_id, id, visit_type, days_to_booking)
+
+  merge(
+    reports,
+    first_bookings,
+    by = "report_id",
+    all.x = TRUE
+  )
+}
+
+care_waits <- get_care_report_waits(
+  care_reports,
+  care_appointments
+)
+
+care_waits |>
+  summarise(
+    viewed_reports = n(),
+    with_later_booking = sum(!is.na(days_to_booking)),
+    without_later_booking = sum(is.na(days_to_booking))
+  ) |>
+  knitr::kable()
+
+care_waits |>
+  filter(!is.na(days_to_booking)) |>
+  group_by(visit_type) |>
+  summarise(
+    reports = n(),
+    median_wait_days = round(median(days_to_booking), 3),
+    .groups = "drop"
+  ) |>
+  knitr::kable()
+```
+
+
+6. Report-To-Booking Time Groups 
+
+Question: How many reports fall into short or long waiting-time categories? 
+
+```{r}
+care_waits <- care_waits |>
+  mutate(
+    wait_group = case_when(
+      is.na(days_to_booking) ~ "No later booking found",
+      days_to_booking <= 1 ~ "Within 1 day",
+      days_to_booking <= 7 ~ "Over 1–7 days",
+      days_to_booking <= 30 ~ "Over 7–30 days",
+      TRUE ~ "Over 30 days"
+    ),
+    booking_type = if_else(
+      is.na(days_to_booking),
+      "No later booking found",
+      visit_type
+    ),
+    wait_group = factor(
+      wait_group,
+      levels = c(
+        "Within 1 day", "Over 1–7 days",
+        "Over 7–30 days", "Over 30 days",
+        "No later booking found"
+      )
+    )
+  )
+
+knitr::kable(
+  with(care_waits, table(wait_group, booking_type)),
+  caption = "Report-viewing to appointment-creation intervals — staging data"
+)
+```
+
+```{r}
+plot_care_waits <- function(data) {
+
+  counts <- data |>
+    count(booking_type, wait_group, .drop = FALSE)
+
+  ggplot(counts, aes(x = wait_group, y = n)) +
+    geom_col(fill = "#3182BD", width = 0.65) +
+    geom_text(
+      aes(label = ifelse(n > 0, n, "")),
+      hjust = -0.2,
+      size = 3.5
+    ) +
+    coord_flip() +
+    facet_wrap(~ booking_type, ncol = 2) +
+    scale_x_discrete(
+      limits = rev(levels(data$wait_group)),
+      drop = FALSE
+    ) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0, 0.2))
+    ) +
+    labs(
+      title = "Time from report viewing to appointment creation",
+      subtitle = "Grouped by the type of first later booking",
+      x = NULL,
+      y = "Number of reports",
+      caption = paste(
+        "Staging data; appointment creation is a booking-date proxy.",
+        "Panels share the same scales. Counts are reports, not patients.",
+        "No later booking found refers to the available records.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+      strip.text = element_text(face = "bold")
+    )
+}
+
+plot_care_waits(care_waits)
+```
+
+
+7. Video Visits Followed by Async Care
+
+Question: Do async visits happen after unknown video visits, and how long 
+afterward? 
+
+```{r}
+get_care_async_gaps <- function(data) {
+
+  video <- data |>
+    filter(visit_type %in% c("15-minute video", "25-minute video")) |>
+    select(customer_id, id, appointment_date, visit_type)
+
+  async <- data |>
+    filter(visit_type == "Async") |>
+    select(customer_id, id, appointment_date)
+
+  pairs <- merge(
+    video,
+    async,
+    by = "customer_id",
+    suffixes = c("_video", "_async")
+  )
+
+  pairs |>
+    mutate(
+      gap_days = as.numeric(
+        difftime(
+          appointment_date_async,
+          appointment_date_video,
+          units = "days"
+        )
+      )
+    ) |>
+    filter(gap_days > 0) |>
+    arrange(gap_days, id_video) |>
+    distinct(id_async, .keep_all = TRUE)
+}
+
+care_async_gaps <- get_care_async_gaps(care_completed)
+
+care_async_summary <- care_async_gaps |>
+  group_by(visit_type) |>
+  summarise(
+    async_visits = n(),
+    customer_ids = n_distinct(customer_id),
+    median_gap_days = round(median(gap_days), 2),
+    shortest_gap_days = round(min(gap_days), 2),
+    longest_gap_days = round(max(gap_days), 2),
+    .groups = "drop"
+  )
+
+knitr::kable(care_async_summary)
+```
+
+```{r}
+plot_care_async_gaps <- function(data) {
+
+  plot_data <- data |>
+    arrange(gap_days) |>
+    mutate(
+      visit_label = factor(
+        paste("Async visit", row_number()),
+        levels = paste("Async visit", row_number())
+      )
+    )
+
+  ggplot(plot_data, aes(x = gap_days, y = visit_label)) +
+    geom_point(color = "#3182BD", size = 3.5) +
+    facet_wrap(~ visit_type) +
+    labs(
+      title = "Async visits after a known video visit",
+      subtitle = "Each dot represents one async visit",
+      x = "Days since the most recent preceding known video",
+      y = NULL,
+      caption = paste(
+        "Staging data; six async visits across two customer IDs.",
+        "Panel titles identify the preceding video type.",
+        "Async visits are not confirmed prescription refills.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+plot_care_async_gaps(care_async_gaps)
+```
+
+
+8. Satisfaction Availability
+
+Question: Where are satisfaction scores recorded, and where should a blank 
+be expected? 
+
+```{r}
+label_care_satisfaction <- function(data) {
+  data |>
+    mutate(
+      score_status = case_when(
+        !is.na(patient_interaction_satisfaction) ~ "Recorded",
+        visit_type == "Async" ~ "Not expected",
+        visit_type %in%
+          c("15-minute video", "25-minute video") ~ "Missing",
+        TRUE ~ "Expectation unknown"
+      )
+    )
+}
+
+care_satisfaction <- label_care_satisfaction(care_completed)
+
+knitr::kable(
+  with(care_satisfaction, table(visit_type, score_status)),
+  caption = "Satisfaction availability by visit type — staging data"
+)
+```
+
+```{r}
+plot_care_satisfaction <- function(data) {
+
+  ggplot(
+    data,
+    aes(y = visit_type, fill = score_status)
+  ) +
+    geom_bar(width = 0.65) +
+    geom_text(
+      stat = "count",
+      aes(label = after_stat(count)),
+      position = position_stack(vjust = 0.5),
+      size = 4
+    ) +
+    scale_fill_manual(
+      values = c(
+        "Recorded" = "#3182BD",
+        "Not expected" = "#B8D8D0",
+        "Expectation unknown" = "#D9D9D9",
+        "Missing" = "#E69F00"
+      )
+    ) +
+    labs(
+      title = "Satisfaction score availability",
+      subtitle = "Completed visits grouped by visit type",
+      x = "Number of completed visits",
+      y = NULL,
+      fill = "Score status",
+      caption = paste(
+        "Staging data. Async blanks are not expected.",
+        "Recorded means a score exists; it does not mean high satisfaction.",
+        sep = "\n"
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+}
+
+plot_care_satisfaction(care_satisfaction)
+```
+
+
+
+You can keep your monthly chart as supporting EDA, with the May 2024 testing 
+annotation. The six sections above provide a focused version of your work for 
+review. After adding them, save and render the notebook; compare the results 
+with your earlier outputs before removing any old code. 
