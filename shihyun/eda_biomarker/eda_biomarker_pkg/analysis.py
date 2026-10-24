@@ -91,19 +91,27 @@ def answer_by_product(answers, rx_patients, field, product_col="first_type"):
     d = answers[[field]].join(rx_patients[[product_col]], how="inner")
     return pd.crosstab(d[field], d[product_col])
 
-"""Per patient: valid DNA sample, valid blood sample, completed medical bio, has a report.
+"""Per patient: valid DNA sample, valid blood sample, completed medical bio, has a report."""
+def north_star(samples, medbio, reports, valid_status="valid", complete_value=None):
+    """Per patient: valid DNA sample, valid blood sample, completed medical bio, has a report.
 
-    ASSUMPTIONS to confirm: sample status 'valid' means usable, and
-    completion == 100 means the medical biography is complete.
+    Sample status 'valid' means usable. On staging `completion` is always empty,
+    so by default any medical biography submission counts as complete; pass
+    complete_value (e.g. 100) once the team confirms how completion is stored.
     """
-def north_star(samples, medbio, reports, valid_status="valid", complete_value=100):
     valid = samples[samples["status"] == valid_status]
     report_samples = set(reports["dna_sample_id"].dropna()) | set(reports["hormone_sample_id"].dropna())
     customers = pd.Index(samples["customer_id"].unique()).union(medbio["customer_id"].unique())
     out = pd.DataFrame(index=customers.rename("customer_id"))
     out["valid_dna"] = out.index.isin(valid.loc[valid["kind"] == "KIT-SLV", "customer_id"])
     out["valid_blood"] = out.index.isin(valid.loc[valid["kind"] == "KIT-BLD", "customer_id"])
-    out["medbio_complete"] = out.index.isin(medbio.loc[medbio["completion"] == complete_value, "customer_id"])
+    done = medbio if complete_value is None else medbio[medbio["completion"] == complete_value]
+    # Reports from the newer pipeline (Nov 2023 on) don't link medbio_1_id but
+    # carry the questionnaire answers, so a report with answers also counts
+    answered = reports[reports["has_answers"].fillna(False).astype(bool)]
+    answered_samples = set(answered["dna_sample_id"].dropna()) | set(answered["hormone_sample_id"].dropna())
+    via_report = samples.loc[samples["sample_id"].isin(answered_samples), "customer_id"]
+    out["medbio_complete"] = out.index.isin(done["customer_id"]) | out.index.isin(via_report)
     out["has_report"] = out.index.isin(samples.loc[samples["sample_id"].isin(report_samples), "customer_id"])
     out["north_star"] = out[["valid_dna", "valid_blood", "medbio_complete"]].all(axis=1)
     out["missing_report"] = out["north_star"] & ~out["has_report"]
@@ -141,3 +149,26 @@ def type_by_flag(patients, flag="clot_carrier", type_col="first_type"):
     table = pd.crosstab(d[flag].astype(bool), d[type_col])
     table.attrs["p_value"] = stats.chi2_contingency(table).pvalue if table.shape[0] > 1 and table.shape[1] > 1 else float("nan")
     return table
+
+
+def options_by_type(answers, rx_patients, field, type_col="first_type", min_n=5):
+    """For each option of a multi-select question: how many picked it, the share of
+    each product type among those who did, and a chi-square p-value (picked vs not)."""
+    from .clean import split_multiselect
+
+    opts = split_multiselect(answers, field).join(rx_patients[[type_col]], how="inner")
+    rows = []
+    for opt in opts.columns.drop(type_col):
+        picked = opts[opt]
+        if picked.sum() < min_n:
+            continue
+        table = pd.crosstab(picked, opts[type_col])
+        p = stats.chi2_contingency(table).pvalue if table.shape == (2, table.shape[1]) and table.shape[1] > 1 else float("nan")
+        share = opts[picked][type_col].value_counts(normalize=True)
+        rows.append({"option": opt, "n_picked": int(picked.sum()), **share.add_prefix("share_").to_dict(), "p_value": p})
+    if not rows:
+        return pd.DataFrame()
+    res = pd.DataFrame(rows).set_index("option").sort_values("p_value")
+    share_cols = [c for c in res.columns if c.startswith("share_")]
+    res[share_cols] = res[share_cols].fillna(0)
+    return res

@@ -18,6 +18,10 @@ PRODUCTS = {
 # Methods that contain estrogen (relevant for clotting risk)
 ESTROGEN_TYPES = {"combined pill", "patch", "ring"}
 
+def clean_answers(answers):
+    """Normalize apostrophes and treat '***' / empty strings as missing."""
+    df = answers.replace({"’": "'"}, regex=True)
+    return df.replace({"***": np.nan, "": np.nan})
 
 def clean_hormones(raw):
     """Drop placeholder values (negative or infinite) and flag out-of-range results."""
@@ -80,3 +84,22 @@ def patient_table(hormones_wide, rx_patients, genetics=None):
 def thirds(series, labels=("low", "middle", "high")):
     """Split a numeric column into thirds (tertiles)."""
     return pd.qcut(series, 3, labels=list(labels))
+
+
+def split_multiselect(answers, field):
+    """One yes/no column per option for a multi-select answer stored like "['A', 'B']"."""
+    import ast
+
+    def parse(v):
+        if not isinstance(v, str):
+            return []
+        try:
+            out = ast.literal_eval(v)
+        except (ValueError, SyntaxError):
+            return [v]
+        return list(out) if isinstance(out, (list, tuple)) else [str(out)]
+
+    lists = answers[field].map(parse)
+    answered = lists.map(len) > 0
+    dummies = lists[answered].explode().str.replace("’", "'").pipe(pd.get_dummies).groupby(level=0).max()
+    return dummies.astype(bool)

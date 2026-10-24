@@ -31,7 +31,7 @@ class AdynData:
 
     @cached_property
     def medbio_answers(self):
-        return self.db.query(queries.MEDBIO_ANSWERS).set_index("customer_id")
+        return clean.clean_answers(self.db.query(queries.MEDBIO_ANSWERS).set_index("customer_id"))
 
     @cached_property
     def samples(self):
