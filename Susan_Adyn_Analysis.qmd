@@ -369,7 +369,7 @@ report_viewing <- dbGetQuery(con, "
   FROM resultvalues
 ")
 
-report_viewinWh
+report_viewing
 ```
 
 ```{r}
