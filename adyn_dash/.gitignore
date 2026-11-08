@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.Renviron
+setenv_*
+*.egg-info/
+dashboard/data/
+demo_output/
+output/

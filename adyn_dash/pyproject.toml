@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adyn-dash"
+version = "0.1.0"
+description = "SQL-backed analysis modules and JSON build for the Adyn Quarto / Observable dashboard"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.2,<3", "numpy>=1.24", "scipy>=1.11"]
+
+[project.optional-dependencies]
+database = ["psycopg[binary]>=3.1", "python-dotenv>=1.0"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["adyn_dash*"]
+
+[tool.setuptools.package-data]
+adyn_dash = ["sources/*/*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::FutureWarning"]
