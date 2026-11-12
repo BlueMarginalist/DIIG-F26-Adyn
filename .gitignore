@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+.Renviron
+setenv_*.ps1
+output/
+demo_output/
+*.egg-info/
+.ipynb_checkpoints/

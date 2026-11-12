@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funnel-pkg"
+version = "0.2.0"
+description = "Test completion funnel (fulfillment and sample return) EDA for the adyn staging database"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.2,<3", "numpy", "matplotlib"]
+
+[project.optional-dependencies]
+database = ["psycopg[binary]", "python-dotenv"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["funnel_pkg*"]
