@@ -7,3 +7,8 @@ output/
 demo_output/
 *.egg-info/
 .ipynb_checkpoints/
+data/
+*.csv
+*.xlsx
+*.zip
+setenv_*
