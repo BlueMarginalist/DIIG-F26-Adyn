@@ -1,14 +1,8 @@
 """Small preparation functions. Inputs are copied, never modified in place."""
 import pandas as pd
 
-VISIT_TYPES = ["15-minute video", "25-minute video", "Async", "Unknown"]
-VIDEO_TYPES = VISIT_TYPES[:2]
-SKU_TYPES = {
-    "VC-SYNC-15CHRG": "15-minute video",
-    "VC-SYNC-25CHRG": "25-minute video",
-    "VC-ASYC-ADCHRG": "Async",
-    "VC-ASYC-ADFREE": "Async",
-}
+from .metrics import COMPLETED_STATUS, COMPLETED_OUTCOME, VISIT_TYPES, VIDEO_TYPES, SKU_TYPES
+
 WAIT_GROUPS = ["Within 1 day", "Over 1–7 days", "Over 7–30 days",
                "Over 30 days", "No later booking found"]
 SCORE_STATUSES = ["Recorded", "Not expected", "Missing", "Expectation unknown"]
@@ -37,8 +31,8 @@ def prepare_appointments(data):
 
 def completed_visits(data):
     return data.loc[
-        data.status.eq("completed") &
-        data.appointment_outcome.eq("visit complete") &
+        data.status.eq(COMPLETED_STATUS) &
+        data.appointment_outcome.eq(COMPLETED_OUTCOME) &
         data.customer_id.notna()
     ].copy()
 

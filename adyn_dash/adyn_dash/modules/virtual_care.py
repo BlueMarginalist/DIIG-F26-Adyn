@@ -34,6 +34,7 @@ class VirtualCare(AnalysisModule):
     sources = (
         Source("virtual_care", "appointments", APPOINTMENT_COLUMNS),
         Source("virtual_care", "reports", REPORT_COLUMNS),
+        Source("virtual_care", "repeat_summary", ("factor", "category", "customers", "repeat_customers", "cutoff_exclusive", "window_days")),
         Source("virtual_care", "customer_cohort", ("customer_id", "por_approved", "first_viewed_date")),
     )
     assumptions = (
@@ -41,11 +42,88 @@ class VirtualCare(AnalysisModule):
         "Appointment timestamps are assumed to be UTC; confirm the source time zone.",
         "Reports are matched to appointments by customer only, so one appointment can serve several reports.",
         "Refill and yearly-visit patterns are unconfirmed.",
+        "Repeat-visit charts are exploratory, unadjusted associations; no causal or validated prediction claims.",
+        "Repeat cutoff completeness is unconfirmed. The first observed visit may not be first-ever; test accounts remain included.",
+        "Rx order creation timestamps are assumed UTC; order presence does not establish medication use.",
+        "Provider labels are temporary groups, not verified NPIs or performance rankings.",
     )
 
     @cached_property
     def eda(self) -> VirtualCareEDA:
         return VirtualCareEDA(self.data("appointments"), self.data("reports"))
+
+    @cached_property
+    def repeat_table(self):
+        table = self.data("repeat_summary").copy()
+        if table.empty and self.cfg.vc_data_through:
+            table = pd.DataFrame([dict(factor=factor, category="No eligible customers", customers=0,
+                                      repeat_customers=0, cutoff_exclusive=self.cfg.params()["vc_cutoff"],
+                                      window_days=self.cfg.vc_window_days)
+                                  for factor in ("overall", "age", "rx", "provider")])
+        if table.empty or table.cutoff_exclusive.isna().any():
+            raise ValueError("Supply --vc-data-through YYYY-MM-DD for live repeat charts; cutoff is provisional")
+        for col in ("customers", "repeat_customers"):
+            table[col] = pd.to_numeric(table[col], errors="raise")
+        if not np.isfinite(table[["customers", "repeat_customers"]].to_numpy()).all():
+            raise ValueError("Repeat counts must be finite")
+        if (table[["customers", "repeat_customers"]] % 1 != 0).any().any():
+            raise ValueError("Repeat counts must be whole numbers")
+        if table.cutoff_exclusive.nunique() != 1 or table.window_days.nunique() != 1:
+            raise ValueError("Repeat summary settings disagree")
+        if ((table.repeat_customers < 0) | (table.repeat_customers > table.customers) |
+                (table.customers < 0)).any():
+            raise ValueError("Invalid repeat summary counts")
+        totals = table.groupby("factor")[["customers", "repeat_customers"]].sum()
+        if set(totals.index) != {"overall", "age", "rx", "provider"} or (totals.nunique() > 1).any():
+            raise ValueError("Repeat summary factor totals disagree")
+        table["percent"] = 100 * table.repeat_customers / table.customers.replace(0, np.nan)
+        table["small_group"] = table.customers < self.cfg.vc_small_group
+        table["cutoff_completeness_confirmed"] = False
+        mask = table.factor.eq("provider") & ~table.category.isin(["Missing provider", "Tied first visits"])
+        keys = sorted(table.loc[mask, "category"].unique())
+        labels = {key: f"Provider {i+1}" for i, key in enumerate(keys)}
+        table.loc[mask, "category"] = table.loc[mask, "category"].map(labels)
+        return table
+
+    def _repeat_factor(self, factor):
+        return self.repeat_table.loc[self.repeat_table.factor.eq(factor)].drop(columns="factor").copy()
+
+    @chart("Observed repeat visits within the configured window", "bar", x="category", y="percent",
+           note="Among customers whose first observed completed visit permits the full window before the provisional cutoff. Strictly later visits count. See exported cutoff and window_days; completeness is unconfirmed.")
+    def repeat_overall(self):
+        return self._repeat_factor("overall")
+
+    @chart("Observed repeat visits by age at first observed visit", "bar", x="category", y="percent",
+           x_order=("Under 18", "18-29", "30-39", "40+", "Unknown or invalid"),
+           note="Unadjusted descriptive rates; small_group flags limited denominators. Unknown or invalid ages remain separate. Cutoff completeness is unconfirmed.")
+    def repeat_by_age(self):
+        return self._repeat_factor("age")
+
+    @chart("Observed repeat visits by prior recorded Rx order", "bar", x="category", y="percent",
+           note="Any Rx order created by the first observed visit; not medication use. Missing order timestamps remain Unknown when no prior dated order is known. Naive creation times assumed UTC. Cutoff is provisional.")
+    def repeat_by_rx(self):
+        return self._repeat_factor("rx")
+
+    @chart("Observed repeat visits by first-visit provider group", "table", internal=True,
+           note="Internal review only: sparse, unadjusted groups cannot support provider rankings. Temporary labels are not NPIs. Tied first visits and missing providers stay separate. Cutoff is provisional.")
+    def repeat_by_provider(self):
+        return self._repeat_factor("provider")
+
+    @chart("First observed completed visit type", "bar", x="first_type", y="customers", internal=True,
+           note="First observed dated completion is not necessarily first-ever care. Unknown types and earliest timestamp ties remain separate. Async-first is not a confirmed rule violation.")
+    def first_visit_types(self):
+        visits = self.eda.completed
+        dated = visits.loc[visits.appointment_date.notna()].copy()
+        first = dated.groupby("customer_id").appointment_date.transform("min")
+        earliest = dated.loc[dated.appointment_date.eq(first)].copy()
+        earliest["kind"] = np.where(earliest.visit_type.isin(vc_clean.VIDEO_TYPES), "Video", earliest.visit_type)
+        groups = earliest.groupby("customer_id").kind.agg(["size", "first"])
+        labels = groups["first"].where(groups["size"].eq(1), "Tied earliest visits")
+        n = len(labels)
+        excluded = visits.customer_id.nunique() - n
+        return pd.DataFrame([dict(first_type=kind, customers=int(labels.eq(kind).sum()),
+                                  denominator=n, customers_without_dated_visits=int(excluded))
+                             for kind in ("Video", "Async", "Unknown", "Tied earliest visits")])
 
     @chart("Completed visit counts among customers with PoR-approved results", "bar",
            x="visit_group", y="percent", color="visit_type",
@@ -78,8 +156,8 @@ class VirtualCare(AnalysisModule):
                              ["customer_id", "first_viewed_date"]].drop_duplicates("customer_id")
         joined = self.eda.appointments.merge(viewers, on="customer_id", how="inner")
         booked = joined.loc[joined.created_date.ge(joined.first_viewed_date)]
-        completed = booked.loc[booked.status.eq("completed") &
-                               booked.appointment_outcome.eq("visit complete") &
+        completed = booked.loc[booked.status.eq(vc_clean.COMPLETED_STATUS) &
+                               booked.appointment_outcome.eq(vc_clean.COMPLETED_OUTCOME) &
                                booked.appointment_date.ge(booked.first_viewed_date)]
         b, c = set(booked.customer_id), set(completed.customer_id)
         n = len(viewers)
@@ -206,4 +284,20 @@ class VirtualCare(AnalysisModule):
                                "por_approved": [c % 5 != 0 for c in range(190)]})
         viewed = reports.groupby("customer_id").customer_viewed_date.min()
         cohort["first_viewed_date"] = cohort.customer_id.map(viewed)
-        return {"appointments": appointments, "reports": reports, "customer_cohort": cohort}
+        # Synthetic aggregate source exercises the chart contract, not the live SQL.
+        cutoff = cfg.params()["vc_cutoff"] or pd.Timestamp("2025-12-31", tz="UTC")
+        repeat = pd.DataFrame([
+            ("overall", "All eligible customers", 10, 4),
+            ("age", "18-29", 6, 3), ("age", "30-39", 3, 1),
+            ("age", "Unknown or invalid", 1, 0),
+            ("rx", "Rx order recorded by first visit", 4, 1),
+            ("rx", "No Rx order recorded by first visit", 5, 3),
+            ("rx", "Unknown Rx timing", 1, 0),
+            ("provider", "demo-provider-a", 7, 3),
+            ("provider", "Missing provider", 2, 1),
+            ("provider", "Tied first visits", 1, 0),
+        ], columns=["factor", "category", "customers", "repeat_customers"])
+        repeat["cutoff_exclusive"] = cutoff
+        repeat["window_days"] = cfg.vc_window_days
+        return {"appointments": appointments, "reports": reports, "customer_cohort": cohort,
+                "repeat_summary": repeat}

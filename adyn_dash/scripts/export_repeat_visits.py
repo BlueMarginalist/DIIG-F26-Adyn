@@ -8,73 +8,17 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from adyn_dash.database import PostgresBackend
 
 
-SQL = """
-WITH completed AS (
-    SELECT customer_id, appointment_date, provider_id
-    FROM appointments
-    WHERE status = 'completed' AND appointment_outcome = 'visit complete'
-      AND customer_id IS NOT NULL AND appointment_date IS NOT NULL
-      AND appointment_date < %(cutoff)s
-), first_dates AS (
-    SELECT customer_id, min(appointment_date) AS first_visit
-    FROM completed GROUP BY customer_id
-), first_providers AS (
-    SELECT f.customer_id,
-        CASE WHEN count(*) > 1 THEN 'Tied first visits'
-             ELSE coalesce(min(a.provider_id::text), 'Missing provider')
-        END AS provider_key
-    FROM first_dates f JOIN completed a
-      ON a.customer_id = f.customer_id AND a.appointment_date = f.first_visit
-    GROUP BY f.customer_id
-), eligible AS (
-    SELECT f.*,
-        extract(year FROM age(
-            (f.first_visit AT TIME ZONE 'UTC')::date,
-            c.date_of_birth::date)) AS baseline_age,
-        p.provider_key,
-        EXISTS (SELECT 1 FROM completed a
-            WHERE a.customer_id = f.customer_id
-              AND a.appointment_date > f.first_visit
-              AND a.appointment_date <= f.first_visit + %(window)s
-        ) AS returned,
-        CASE WHEN EXISTS (SELECT 1 FROM rxorders r
-            WHERE r.customer_id = f.customer_id
-              AND r.created_date AT TIME ZONE 'UTC' <= f.first_visit
-        ) THEN 'Rx order recorded by first visit'
-        WHEN EXISTS (SELECT 1 FROM rxorders r
-            WHERE r.customer_id = f.customer_id AND r.created_date IS NULL
-        ) THEN 'Unknown Rx timing'
-        ELSE 'No Rx order recorded by first visit' END AS rx_group
-    FROM first_dates f
-    LEFT JOIN customers c ON c.id = f.customer_id
-    JOIN first_providers p ON p.customer_id = f.customer_id
-    WHERE f.first_visit + %(window)s <= %(cutoff)s
-), categories AS (
-    SELECT 'overall' AS factor, 'All eligible customers' AS category, returned
-    FROM eligible
-    UNION ALL
-    SELECT 'age', CASE
-        WHEN baseline_age IS NULL OR baseline_age < 0 OR baseline_age > 120
-            THEN 'Unknown or invalid'
-        WHEN baseline_age < 18 THEN 'Under 18'
-        WHEN baseline_age < 30 THEN '18-29'
-        WHEN baseline_age < 40 THEN '30-39'
-        ELSE '40+' END, returned FROM eligible
-    UNION ALL
-    SELECT 'rx', rx_group, returned FROM eligible
-    UNION ALL
-    SELECT 'provider', provider_key, returned FROM eligible
-)
-SELECT factor, category, count(*) AS customers,
-    count(*) FILTER (WHERE returned) AS repeat_customers
-FROM categories GROUP BY factor, category ORDER BY factor, category
-"""
+from adyn_dash.config import Config
+from adyn_dash.source import Source
+
+SQL = Source("virtual_care", "repeat_summary").sql(Config())
+
 
 
 def export_rows(rows, output, cutoff_date, window_days):
@@ -140,13 +84,11 @@ def main():
     args = parser.parse_args()
     if args.window_days <= 0:
         parser.error('--window-days must be positive')
-    cutoff = datetime.combine(args.data_through + timedelta(days=1),
-                              datetime.min.time(), tzinfo=timezone.utc)
     with PostgresBackend(env_file=args.env_file) as backend:
         with backend.conn.cursor() as cursor:
             cursor.execute("SET TIME ZONE 'UTC'")
-            cursor.execute(SQL, dict(cutoff=cutoff, window=timedelta(days=args.window_days)))
-            rows = cursor.fetchall()
+            cursor.execute(SQL, Config(vc_data_through=args.data_through.isoformat(), vc_window_days=args.window_days).params())
+            rows = [row[:4] for row in cursor.fetchall()]
     customers, repeats = export_rows(rows, args.out, args.data_through.isoformat(), args.window_days)
     print(f'Exported 4 summary tables as CSV and JSON to {args.out}')
     print(f'Eligible customers: {customers}; returned: {repeats}')

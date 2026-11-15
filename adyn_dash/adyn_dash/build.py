@@ -98,8 +98,10 @@ def main(argv=None) -> int:
     p.add_argument("--modules", help="comma-separated module names (default: all)")
     p.add_argument("--out", default="dashboard/data")
     p.add_argument("--as-of", help="date used for ages (default: today)")
+    p.add_argument("--vc-data-through", help="provisional inclusive UTC cutoff for virtual-care repeat charts")
+    p.add_argument("--vc-window-days", type=int, default=90)
     a = p.parse_args(argv)
-    cfg = Config(as_of=a.as_of) if a.as_of else Config()
+    cfg = Config(as_of=a.as_of, vc_data_through=a.vc_data_through, vc_window_days=a.vc_window_days)
     manifest = build(a.modules.split(",") if a.modules else None, a.out, a.demo, a.env_file, cfg)
     ok = [c for c in manifest["charts"] if c["status"] == "ok"]
     bad = [c for c in manifest["charts"] if c["status"] != "ok"]
