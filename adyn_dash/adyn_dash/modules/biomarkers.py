@@ -46,12 +46,16 @@ class Biomarkers(AnalysisModule):
         Source("biomarkers", "samples", ("customer_id", "sample_id", "kind", "status")),
         Source("biomarkers", "medbio_submissions", ("customer_id", "completion", "created_date")),
         Source("biomarkers", "reports", ("report_id", "dna_sample_id", "hormone_sample_id", "has_answers")),
+        Source("biomarkers", "customer_dob", ("customer_id", "date_of_birth")),
     )
     assumptions = (
         "Product names and method types are inferred from SKU codes; confirm with the team.",
         "Negative or infinite hormone values are placeholders and are dropped.",
         "Medical-biography completion is empty on staging, so any submission counts as complete.",
         "Statistical tests use a Bonferroni cutoff; patterns are exploratory, not causal.",
+        "On birth control at a hormone test = latest Adyn prescription order placed within "
+        "Config.bc_on_window_days (default 120) before the test; outside prescriptions are not visible "
+        "and count as off.",
     )
 
     # ---- derived tables (what AdynData used to cache) -------------------------------------------
@@ -78,6 +82,21 @@ class Biomarkers(AnalysisModule):
     @cached_property
     def patients(self) -> pd.DataFrame:
         return clean.patient_table(clean.hormone_wide(self.hormones), self.rx_patients, self.genetics)
+
+    @cached_property
+    def hormones_age_bc(self) -> pd.DataFrame:
+        """Person-level: one row per patient, hormone and birth control status, with age. Stays in memory."""
+        return clean.hormone_age_bc(self.hormones, self.rx_orders, self.data("customer_dob"),
+                                    window_days=self.cfg.bc_on_window_days)
+
+    @cached_property
+    def age_bc_table(self) -> pd.DataFrame:
+        """Median and quartiles by hormone x age band x status, without groups below min_group_patients."""
+        d = analysis.age_bc_summary(self.hormones_age_bc)
+        d = d[d["patients"] >= self.cfg.min_group_patients].copy()
+        d["age_band"] = d["age_band"].astype(str)
+        d["bc_status"] = d["bc_status"].astype(str)
+        return d.reset_index(drop=True)
 
     @property
     def hormone_names(self):
@@ -118,6 +137,28 @@ class Biomarkers(AnalysisModule):
         d = res.drop(columns=["p_value"]).reset_index().melt(id_vars="variable", var_name="method_type",
                                                               value_name="median")
         return d.dropna(subset=["median"])
+
+    # ---- hormones by age, on and off birth control (Elizabeth's 11/8 feedback) -------------------------
+    @chart("Median hormone level by age, on and off birth control", "line", x="age_band", y="median",
+           color="bc_status", filters=("hormone",), x_order=tuple(clean.AGE_LABELS),
+           note="On = latest Adyn prescription within 120 days before the blood test. Estrogen + progestin = "
+                "combined pill, patch, ring; progestin only = Slynd, Depo-Provera. Groups under 3 patients hidden.")
+    def hormone_by_age_bc(self):
+        return self.age_bc_table
+
+    @chart("Hormone level range by age, on and off birth control", "range", x="age_band", y="q1", y2="q3",
+           color="bc_status", filters=("hormone",), x_order=tuple(clean.AGE_LABELS),
+           note="Bars span the middle half of patients (25th to 75th percentile). Groups under 3 patients hidden.")
+    def hormone_range_by_age_bc(self):
+        return self.age_bc_table
+
+    @chart("Patients per age band, on and off birth control", "bar", x="age_band", y="patients",
+           color="bc_status", x_order=tuple(clean.AGE_LABELS),
+           note="Patients with at least one hormone result. A patient tested both on and off counts in both.")
+    def patients_by_age_bc(self):
+        d = self.hormones_age_bc.drop_duplicates(["customer_id", "bc_status"])
+        out = d.groupby(["age_band", "bc_status"], observed=False).size().rename("patients").reset_index()
+        return out.astype({"age_band": str, "bc_status": str})
 
     # ---- genetics -------------------------------------------------------------------------------------
     @chart("Share of patients with a prescription, by depression-risk score", "bar", x="third", y="share",
@@ -160,6 +201,13 @@ class Biomarkers(AnalysisModule):
            note="Mann-Whitney, Spearman and Kruskal-Wallis p-values; compare with the Bonferroni cutoff.")
     def hormone_tests(self):
         return analysis.hormone_tests(self.patients, self.hormone_names).reset_index()
+
+    @chart("Statistical tests: hormones by age and birth control", "table", internal=True,
+           note="Kruskal-Wallis across off / estrogen + progestin / progestin only within each age band, and "
+                "Spearman age trend within each status; compare with the Bonferroni cutoff.")
+    def age_bc_tests(self):
+        t = analysis.age_bc_tests(self.hormones_age_bc)
+        return t.assign(bonferroni_cutoff=t.attrs["bonferroni_cutoff"])
 
     @chart("Most repeated hormone value (possible placeholder)", "table", internal=True)
     def hormone_spikes(self):
@@ -226,9 +274,12 @@ class Biomarkers(AnalysisModule):
             if rng.random() < 0.8:
                 reports.append(dict(report_id=i + 1, dna_sample_id=slv, hormone_sample_id=bld,
                                     has_answers=bool(rng.random() < 0.7)))
+        dob = pd.DataFrame({"customer_id": ids,
+                            "date_of_birth": [pd.Timestamp("1980-01-01") + pd.Timedelta(days=int(d))
+                                              for d in rng.integers(0, 365 * 25, n)]})
         submissions = pd.DataFrame({"customer_id": [c for c in ids if rng.random() < 0.8],
                                     "completion": None, "created_date": pd.Timestamp("2024-01-15")})
         return {"hormones_raw": pd.DataFrame(h_rows), "rx_orders": pd.DataFrame(rx), "genetics": genetics,
                 "medbio_answers": answers, "samples": pd.DataFrame(sample_rows),
-                "medbio_submissions": submissions,
+                "medbio_submissions": submissions, "customer_dob": dob,
                 "reports": pd.DataFrame(reports)[["report_id", "dna_sample_id", "hormone_sample_id", "has_answers"]]}

@@ -58,6 +58,10 @@ class Config:
     age_bins: Tuple[int, ...] = (0, 24, 29, 34, 200)
     age_labels: Tuple[str, ...] = ("<=24", "25-29", "30-34", "35+")
 
+    # --- biomarkers: on/off birth control at a hormone test ------------------------------------------
+    bc_on_window_days: int = 120                # latest Adyn Rx order within this many days before the test => on
+    min_group_patients: int = 3                 # age band x status groups smaller than this are not charted
+
     @property
     def sql_dir(self) -> Path:
         return Path(__file__).resolve().parent / "sources"
