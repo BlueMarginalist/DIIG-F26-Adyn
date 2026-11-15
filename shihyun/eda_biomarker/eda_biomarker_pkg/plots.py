@@ -10,6 +10,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 BLUE, INK, MUTED, LIGHT = "#2a78d6", "#0b0b0b", "#52514e", "#c3c2b7"
+ORANGE, GRAY = "#eb6834", "#8a897f"
+BC_COLORS = {"off birth control": GRAY, "estrogen + progestin": BLUE, "progestin only": ORANGE}
 STYLE = {
     "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": MUTED,
     "axes.labelcolor": MUTED, "xtick.color": MUTED, "ytick.color": MUTED,
@@ -174,4 +176,59 @@ def by_type_boxplot(patients, variable, type_col="first_type", min_n=3, ylabel=N
     ax.set_xticks(range(1, len(types) + 1), [type_label(t, 22) + f"\nn={counts[t]}" for t in types], fontsize=9)
     ax.set_ylabel(ylabel or variable)
     ax.set_title(f"{variable} by {type_col.replace('_', ' ')}", loc="left")
+    return fig
+
+def _age_bc_panel(ax, d, min_n=3, label_n=False):
+    """Grouped box plots on one axis: x = age band, one box per birth control status."""
+    from matplotlib.patches import Patch
+    bands = list(d["age_band"].cat.categories)
+    statuses = [s for s in d["bc_status"].cat.categories if s in set(d["bc_status"])]
+    width = 0.8 / max(len(statuses), 1)
+    for i, status in enumerate(statuses):
+        color = BC_COLORS.get(status, MUTED)
+        for j, band in enumerate(bands):
+            v = d.loc[(d["bc_status"] == status) & (d["age_band"] == band), "value"].dropna()
+            if len(v) < min_n:
+                continue
+            x = j - 0.4 + width * (i + 0.5)
+            ax.boxplot([v], positions=[x], widths=width * 0.8, patch_artist=True, manage_ticks=False,
+                       boxprops=dict(facecolor=color, edgecolor=color, alpha=0.35),
+                       medianprops=dict(color=color, linewidth=2), whiskerprops=dict(color=MUTED),
+                       capprops=dict(color=MUTED), flierprops=dict(markeredgecolor=MUTED, markersize=3))
+            if label_n:
+                ax.annotate(f"n={len(v)}", (x, 0), xycoords=("data", "axes fraction"), xytext=(0, 3),
+                            textcoords="offset points", ha="center", fontsize=7, color=MUTED)
+    if label_n:   # leave room under the boxes for the n labels
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(lo - 0.08 * (hi - lo), hi)
+    ax.set_xticks(range(len(bands)), bands)
+    ax.set_xlim(-0.6, len(bands) - 0.4)
+    ax.set_xlabel("age at test")
+    return [Patch(facecolor=BC_COLORS.get(s, MUTED), alpha=0.6, label=s) for s in statuses]
+
+
+def hormones_by_age_bc(table, hormones=None, min_n=3):
+    """One panel per hormone: levels by age band, on vs off birth control, by formulation."""
+    names = hormones or sorted(table["hormone"].unique())
+    ncols = min(3, len(names))
+    nrows = int(np.ceil(len(names) / ncols))
+    fig, axes = _figure(nrows, ncols, figsize=(5.6 * ncols, 3.9 * nrows + 0.6), squeeze=False)
+    handles = []
+    for ax, h in zip(axes.flat, names):
+        handles = _age_bc_panel(ax, table[table["hormone"] == h], min_n) or handles
+        ax.set_title(h)
+    for ax in list(axes.flat)[len(names):]:
+        ax.set_visible(False)
+    fig.legend(handles=handles, loc="outside lower center", ncols=len(handles), frameon=False)
+    fig.suptitle("Hormone levels by age, on and off birth control", color=INK)
+    return fig
+
+
+def hormone_by_age_bc(table, hormone, min_n=3, ylabel=None):
+    """One hormone by age band and birth control status, with n per box."""
+    fig, ax = _figure(figsize=(9, 4.8))
+    handles = _age_bc_panel(ax, table[table["hormone"] == hormone], min_n, label_n=True)
+    ax.set_ylabel(ylabel or hormone)
+    ax.set_title(f"{hormone} by age, on and off birth control", loc="left")
+    fig.legend(handles=handles, frameon=False, loc="outside right upper")
     return fig

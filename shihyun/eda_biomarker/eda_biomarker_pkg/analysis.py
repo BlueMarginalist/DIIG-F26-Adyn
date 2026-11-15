@@ -172,3 +172,37 @@ def options_by_type(answers, rx_patients, field, type_col="first_type", min_n=5)
     share_cols = [c for c in res.columns if c.startswith("share_")]
     res[share_cols] = res[share_cols].fillna(0)
     return res
+
+def age_bc_summary(table, hormones=None):
+    """Hormone levels by age band and birth control status: patients, median, quartiles."""
+    d = table if hormones is None else table[table["hormone"].isin(hormones)]
+    g = d.groupby(["hormone", "age_band", "bc_status"], observed=True)["value"]
+    out = pd.DataFrame({
+        "patients": g.size(), "median": g.median(),
+        "q1": g.quantile(0.25), "q3": g.quantile(0.75),
+    })
+    return out.reset_index()
+
+
+def age_bc_tests(table, hormones=None, min_n=5, alpha=0.05):
+    """Per hormone: (a) within each age band, do levels differ off / E+P / progestin only?
+    (Kruskal-Wallis)  (b) within each status, do levels change with age? (Spearman)"""
+    d = table if hormones is None else table[table["hormone"].isin(hormones)]
+    rows = []
+    for h, dh in d.groupby("hormone"):
+        for band, db in dh.groupby("age_band", observed=True):
+            groups = [g["value"] for _, g in db.groupby("bc_status", observed=True) if len(g) >= min_n]
+            p = stats.kruskal(*groups).pvalue if len(groups) > 1 else float("nan")
+            rows.append({"hormone": h, "test": "on vs off, within age band", "group": str(band),
+                         "n": int(sum(len(g) for g in groups)), "n_groups": len(groups),
+                         "statistic": float("nan"), "p_value": p})
+        for status, ds in dh.groupby("bc_status", observed=True):
+            ok = len(ds) >= min_n and ds["age"].nunique() > 1
+            rho, p = stats.spearmanr(ds["age"], ds["value"]) if ok else (float("nan"), float("nan"))
+            rows.append({"hormone": h, "test": "age trend, within status", "group": str(status),
+                         "n": len(ds), "n_groups": 1, "statistic": rho, "p_value": p})
+    res = pd.DataFrame(rows)
+    n_tests = int(res["p_value"].notna().sum()) or 1
+    res.attrs["bonferroni_cutoff"] = alpha / n_tests
+    res["significant"] = res["p_value"] < res.attrs["bonferroni_cutoff"]
+    return res.rename(columns={"statistic": "spearman_rho"})

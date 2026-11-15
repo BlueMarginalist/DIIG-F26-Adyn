@@ -59,6 +59,16 @@ class AdynData:
         """One row per patient with hormones, prescriptions and genetics."""
         return clean.patient_table(clean.hormone_wide(self.hormones), self.rx_patients, self.genetics)
 
+    @cached_property
+    def dob(self):
+        return self.db.query(queries.CUSTOMER_DOB)
+
+    @cached_property
+    def hormones_age_bc(self):
+        """One row per patient, hormone and birth control status (on/off, formulation), with age."""
+        return clean.hormone_age_bc(self.hormones, self.rx_orders, self.dob)
+    
     @property
     def hormone_names(self):
         return sorted(self.hormones["hormone"].unique())
+

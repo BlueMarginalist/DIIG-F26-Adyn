@@ -17,6 +17,20 @@ PRODUCTS = {
 }
 # Methods that contain estrogen (relevant for clotting risk)
 ESTROGEN_TYPES = {"combined pill", "patch", "ring"}
+# Hormone formulation of each method type: estrogen + progestin (combined) vs progestin only
+FORMULATIONS = {
+    "combined pill": "estrogen + progestin",
+    "patch": "estrogen + progestin",
+    "ring": "estrogen + progestin",
+    "progestin-only pill": "progestin only",
+    "injection": "progestin only",
+}
+OFF_BC = "off birth control"
+BC_STATUSES = [OFF_BC, "estrogen + progestin", "progestin only"]
+
+# Age bands (years): [18, 25) -> "18-24", ..., 40+
+AGE_BINS = [18, 25, 30, 35, 40, 120]
+AGE_LABELS = ["18-24", "25-29", "30-34", "35-39", "40+"]
 
 def clean_answers(answers):
     """Normalize apostrophes and treat '***' / empty strings as missing."""
@@ -42,6 +56,7 @@ def label_products(rx):
     df["product"] = df["sku"].map(lambda s: PRODUCTS.get(s, (s, "unknown"))[0])
     df["method_type"] = df["sku"].map(lambda s: PRODUCTS.get(s, (s, "unknown"))[1])
     df["has_estrogen"] = df["method_type"].isin(ESTROGEN_TYPES)
+    df["formulation"] = df["method_type"].map(FORMULATIONS)
     return df
 
 
@@ -103,3 +118,41 @@ def split_multiselect(answers, field):
     answered = lists.map(len) > 0
     dummies = lists[answered].explode().str.replace("’", "'").pipe(pd.get_dummies).groupby(level=0).max()
     return dummies.astype(bool)
+
+def age_bands(age, bins=AGE_BINS, labels=AGE_LABELS):
+    """Age in years -> ordered age band (e.g. '25-29')."""
+    return pd.cut(age, bins=bins, labels=labels, right=False)
+
+
+def hormone_age_bc(hormones, rx_orders, dob, window_days=120):
+    """One row per patient, hormone and birth control status at the time of the test.
+
+    A blood sample counts as ON birth control if the patient's latest Adyn
+    prescription order before the test was placed within `window_days`, and the
+    formulation is that order's. Otherwise it counts as OFF. Repeat samples with
+    the same status are averaged. Outside (non-Adyn) prescriptions aren't visible.
+    """
+    h = hormones.copy()
+    h["test_date"] = pd.to_datetime(h["created_date"]).dt.tz_localize(None).dt.normalize()
+    h["test_date"] = h.groupby(["customer_id", "sample_id"])["test_date"].transform("min")
+
+    samples = h[["customer_id", "sample_id", "test_date"]].drop_duplicates().sort_values("test_date")
+    rx = label_products(rx_orders)
+    rx = rx[rx["formulation"].notna()].assign(
+        order_date=pd.to_datetime(rx["date_order_placed"]).dt.tz_localize(None).dt.normalize())
+    rx = rx[["customer_id", "order_date", "formulation"]].sort_values("order_date")
+    s = pd.merge_asof(samples, rx, left_on="test_date", right_on="order_date",
+                      by="customer_id", direction="backward", allow_exact_matches=False)
+    on = s["order_date"].notna() & ((s["test_date"] - s["order_date"]).dt.days <= window_days)
+    s["bc_status"] = s["formulation"].where(on, OFF_BC)
+
+    births = dob.set_index("customer_id")["date_of_birth"]
+    s["age"] = (s["test_date"] - pd.to_datetime(s["customer_id"].map(births))).dt.days / 365.25
+
+    d = h.merge(s[["customer_id", "sample_id", "bc_status", "age"]], on=["customer_id", "sample_id"])
+    d = d.dropna(subset=["age"])
+    out = d.groupby(["customer_id", "hormone", "bc_status"], as_index=False).agg(
+        value=("value", "mean"), age=("age", "mean"), n_samples=("sample_id", "nunique"))
+    out["bc_status"] = pd.Categorical(out["bc_status"], categories=BC_STATUSES, ordered=True)
+    out["age_band"] = age_bands(out["age"])
+    return out

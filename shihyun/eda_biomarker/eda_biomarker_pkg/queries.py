@@ -108,3 +108,16 @@ ORDERS_COLUMNS = """
 select column_name, data_type from information_schema.columns
 where table_name = 'orders' order by ordinal_position
 """
+
+# Date of birth per patient, for age at each hormone test.
+# ASSUMPTION: customers has id and date_of_birth. Check with CUSTOMERS_COLUMNS first.
+CUSTOMER_DOB = """
+select id as customer_id, date_of_birth
+from customers
+where date_of_birth is not null
+"""
+
+CUSTOMERS_COLUMNS = """
+select column_name, data_type from information_schema.columns
+where table_name = 'customers' order by ordinal_position
+"""

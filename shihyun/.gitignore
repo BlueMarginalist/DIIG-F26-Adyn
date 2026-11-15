@@ -1,3 +1,4 @@
 setenv_*.sh
 .env
 .venv/
+eda_biomarker/notes
