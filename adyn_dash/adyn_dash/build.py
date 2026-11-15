@@ -75,6 +75,8 @@ def build(modules: Optional[Iterable[str]] = None, out: str = "dashboard/data", 
                          "assumptions": list(klass.assumptions)}
                 try:
                     table = module.run(spec.name)
+                    if "export_metadata" in table.attrs:
+                        entry["export_metadata"] = table.attrs["export_metadata"]
                     path = out_dir / klass.name / f"{spec.name}.json"
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(json.dumps(to_records(table), indent=1), encoding="utf-8")

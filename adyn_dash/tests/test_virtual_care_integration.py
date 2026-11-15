@@ -1,5 +1,7 @@
 """Regression checks for integrated exploratory exports (no database required)."""
+import json
 import tempfile
+from pathlib import Path
 import unittest
 from datetime import datetime, timezone
 
@@ -97,6 +99,24 @@ class IntegrationChecks(unittest.TestCase):
             result = build(modules=['virtual_care'], out=folder, demo=True)
             self.assertEqual(len(result['charts']), 18)
             self.assertTrue(all(c['status'] == 'ok' for c in result['charts']))
+            saved = json.loads((Path(folder) / 'manifest.json').read_text())
+            for chart in saved['charts']:
+                meta = chart['export_metadata']
+                self.assertIsInstance(meta['entry_count'], int)
+                self.assertGreaterEqual(meta['entry_count'], 0)
+                self.assertTrue(meta['count_unit'])
+                self.assertTrue(meta['missing_value_note'])
+            overall = next(c for c in saved['charts'] if c['id'].endswith('.repeat_overall'))
+            self.assertEqual(overall['export_metadata']['entry_count'], 10)
+
+    def test_empty_export_keeps_count_and_missing_note(self):
+        m = self.module()
+        # No async visits: preserve empty-table semantics and describe the zero count.
+        m.eda.completed = m.eda.completed.loc[~m.eda.completed.visit_type.eq('Async')].copy()
+        out = m.run('video_to_async')
+        self.assertTrue(out.empty)
+        self.assertEqual(out.attrs['export_metadata']['entry_count'], 0)
+        self.assertIn('empty table', out.attrs['export_metadata']['missing_value_note'])
 
 
 if __name__ == '__main__':

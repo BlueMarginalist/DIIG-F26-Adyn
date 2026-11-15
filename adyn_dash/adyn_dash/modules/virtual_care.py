@@ -48,6 +48,84 @@ class VirtualCare(AnalysisModule):
         "Provider labels are temporary groups, not verified NPIs or performance rankings.",
     )
 
+    def run(self, chart_name):
+        table = super().run(chart_name)
+        table.attrs["export_metadata"] = self.export_metadata(chart_name, table)
+        return table
+
+    def export_metadata(self, name, table):
+        """Aggregate counts and missing-data context, preserved even for empty exports."""
+        def total(column):
+            return int(table[column].sum())
+
+        if name.startswith("repeat_"):
+            return {
+                "entry_count": total("customers"),
+                "count_unit": "eligible customers with a full follow-up window",
+                "missing_value_note": (
+                    "Unknown ages, unknown Rx timing, missing providers and tied first visits "
+                    "remain separate categories in their respective tables. Zero denominators "
+                    "produce null percentages. Small groups are flagged, not suppressed. "
+                    "Cutoff completeness and timestamp assumptions remain unconfirmed."
+                ),
+            }
+        visits = self.eda.completed
+        missing = {
+            "completed_visits_without_date": int(visits.appointment_date.isna().sum()),
+            "completed_visits_with_unknown_type": int(visits.visit_type.eq("Unknown").sum()),
+            "completed_visits_without_score": int(visits.patient_interaction_satisfaction.isna().sum()),
+        }
+        # These are source-wide checks, not counts to subtract from every chart.
+        notes = {
+            "visit_frequency": ("customer/type memberships", "customer_ids",
+                "Unknown types remain visible. Customers can appear in several types; zero-visit customers are not included."),
+            "visit_spans": ("customer/type memberships with at least two dated visits", "ids_with_usable_span",
+                "Spans need two dated visits within a type. Missing dates do not contribute; groups without a usable span have null medians. Unknown types remain visible."),
+            "overall_visit_span": ("customers with at least two dated visits", "customers_with_usable_span",
+                "Missing dates do not contribute to spans. Customers without two dated visits are counted separately; the median is null if no spans are usable."),
+            "visit_gaps": ("usable customer/type/interval gaps", "customers",
+                "Missing dates are excluded. Each first-to-second or second-to-third gap counts separately within a type. Zero-day gaps and Unknown types are retained; empty groups have null medians."),
+            "report_waits": ("viewed reports", "reports",
+                "Reports without a matched later booking remain in the unmatched category. Missing customer links or booking dates prevent matching. Unknown visit types remain separate; one booking can match several reports."),
+            "report_wait_by_type": ("viewed reports matched to a later booking", "reports",
+                "Unmatched reports are excluded from medians. Missing customer links or booking dates prevent matching. Empty types have null medians; Unknown types remain visible."),
+            "transitions": ("usable adjacent visit pairs", "pairs",
+                "Missing visit dates and pairs touching tied timestamps are excluded. Unknown types remain visible. Counts are pairs, not unique customers."),
+            "video_to_async": ("async visits with a known earlier video visit", "async_visits",
+                "Undated visits and async visits without a known earlier video are excluded. Unknown types are not inferred. No eligible matches produces an empty table."),
+            "satisfaction": ("completed visits", "visits",
+                "Recorded scores include zero. Blank async scores are Not expected; blank video scores are Missing; blank scores for Unknown types have unknown expectations. These are physician-reported scores."),
+            "monthly_visits": ("dated completed visits", "visits",
+                "Visits without a date are excluded. Unknown types remain visible. Months with no records are absent, not automatically filled with zero."),
+        }
+        if name in notes:
+            unit, column, note = notes[name]
+            count = total(column)
+        elif name == "approved_visit_frequency":
+            count = int(table.denominator.iloc[0]) if len(table) else 0
+            unit = "unique customers with at least one linked PoR-approved result"
+            note = "Zero-visit customers are included. Unknown types remain visible. Every type uses the same denominator; do not sum denominators across rows. Empty cohorts produce null percentages."
+        elif name == "viewer_conversion":
+            count = int(table.denominator.iloc[0]) if len(table) else 0
+            unit = "unique linked customers with a report-view date"
+            note = "Missing customer links or report-view dates exclude customers from the denominator. Missing booking dates prevent booking classification and are counted in the table. Empty cohorts produce null percentages. Outcome categories overlap."
+        elif name == "first_visit_types":
+            count = total("customers")
+            unit = "customers with at least one dated completed visit"
+            note = "Customers without dated visits are counted separately. Unknown types and tied earliest visits remain separate categories. First observed does not mean first-ever."
+        elif name == "quality":
+            count = len(visits)
+            unit = "completed visits with a customer link"
+            note = "Missing dates, Unknown types, tied timestamps and excluded missing-customer records are reported as checks. Checks can overlap; do not sum them as distinct visits."
+        else:
+            raise ValueError(f"Missing export context for {name}")
+        context = {"entry_count": count, "count_unit": unit, "missing_value_note": note,
+                   "completed_source_missing_counts": missing,
+                   "missing_count_scope": "All qualifying completed visits, not chart-specific exclusions; checks overlap."}
+        if name in ("report_waits", "report_wait_by_type"):
+            context["report_matching_counts"] = self.eda.report_summary().iloc[0].to_dict()
+        return context
+
     @cached_property
     def eda(self) -> VirtualCareEDA:
         return VirtualCareEDA(self.data("appointments"), self.data("reports"))
