@@ -34,6 +34,7 @@ class VirtualCare(AnalysisModule):
     sources = (
         Source("virtual_care", "appointments", APPOINTMENT_COLUMNS),
         Source("virtual_care", "reports", REPORT_COLUMNS),
+        Source("virtual_care", "customer_cohort", ("customer_id", "por_approved", "first_viewed_date")),
     )
     assumptions = (
         "Only completed visits are counted for visit totals, gaps, transitions and satisfaction.",
@@ -45,6 +46,51 @@ class VirtualCare(AnalysisModule):
     @cached_property
     def eda(self) -> VirtualCareEDA:
         return VirtualCareEDA(self.data("appointments"), self.data("reports"))
+
+    @chart("Completed visit counts among customers with PoR-approved results", "bar",
+           x="visit_group", y="percent", color="visit_type",
+           x_order=("0", "1", "2", "3", "4+"), filters=("visit_type",),
+           note="Unique customers with at least one PoR-approved report; lifetime observed completed visits. Each type has the same denominator. Missing type stays Unknown.")
+    def approved_visit_frequency(self):
+        cohort = self.data("customer_cohort")
+        ids = cohort.loc[cohort.por_approved.eq(True), "customer_id"].dropna().unique()
+        rows = []
+        for kind in ("All visit types",) + TYPES:
+            visits = self.eda.completed
+            if kind != "All visit types":
+                visits = visits.loc[visits.visit_type.eq(kind)]
+            counts = visits.groupby("customer_id").size().reindex(ids, fill_value=0)
+            groups = counts.clip(upper=4)
+            for number in range(5):
+                n = int(groups.eq(number).sum())
+                rows.append(dict(visit_type=kind, visit_group=str(number) if number < 4 else "4+",
+                                 customers=n, denominator=len(ids),
+                                 percent=100*n/len(ids) if len(ids) else np.nan))
+        return pd.DataFrame(rows)
+
+    @chart("Virtual care after a customer's first report view", "bar",
+           x="outcome", y="percent",
+           note="Denominator: unique linked report viewers. Booking uses created_date at/after first view. Completion requires that booking plus a completed visit dated at/after view. Booked without completion is observed status, not confirmed abandonment; scheduled visits may still occur.")
+    def viewer_conversion(self):
+        cohort = self.data("customer_cohort").copy()
+        cohort["first_viewed_date"] = pd.to_datetime(cohort.first_viewed_date, utc=True, format="mixed")
+        viewers = cohort.loc[cohort.customer_id.notna() & cohort.first_viewed_date.notna(),
+                             ["customer_id", "first_viewed_date"]].drop_duplicates("customer_id")
+        joined = self.eda.appointments.merge(viewers, on="customer_id", how="inner")
+        booked = joined.loc[joined.created_date.ge(joined.first_viewed_date)]
+        completed = booked.loc[booked.status.eq("completed") &
+                               booked.appointment_outcome.eq("visit complete") &
+                               booked.appointment_date.ge(booked.first_viewed_date)]
+        b, c = set(booked.customer_id), set(completed.customer_id)
+        n = len(viewers)
+        missing_created = joined.loc[joined.created_date.isna(), "customer_id"].nunique()
+        rows = []
+        for label, count in [("Booked", len(b)), ("Completed", len(c)),
+                             ("Booked without observed completion", len(b-c))]:
+            rows.append(dict(outcome=label, customers=count, denominator=n,
+                             percent=100*count/n if n else np.nan,
+                             viewers_with_missing_booking_dates=int(missing_created)))
+        return pd.DataFrame(rows)
 
     @chart("Completed visits per customer, by visit type", "bar", x="visit_group", y="customer_ids",
            color="visit_type", x_order=("1", "2", "3–5", "6+"), filters=("visit_type",),
@@ -60,6 +106,22 @@ class VirtualCare(AnalysisModule):
     def visit_spans(self):
         return self.eda.visit_summary()[["visit_type", "customer_ids", "repeat_customer_ids",
                                          "ids_with_usable_span", "median_span_days"]]
+
+    @chart("Time from first to last completed visit, across all types", "bar",
+           x="visit_scope", y="median_span_days",
+           note="Includes all completed visit types, including Unknown. Needs two dated visits; not time enrolled.")
+    def overall_visit_span(self):
+        visits = self.eda.completed
+        spans = visits.groupby("customer_id").appointment_date.agg(["count", "min", "max"])
+        eligible = spans.loc[spans["count"].ge(2)]
+        days = (eligible["max"] - eligible["min"]).dt.total_seconds() / 86400
+        return pd.DataFrame([{
+            "visit_scope": "All visit types",
+            "customers_with_completed_visits": len(spans),
+            "customers_with_usable_span": len(days),
+            "customers_without_usable_span": len(spans) - len(days),
+            "median_span_days": days.median(),
+        }])
 
     @chart("Days between a customer's visits", "bar", x="visit_type", y="median_days", color="interval",
            x_order=TYPES, filters=("interval",),
@@ -94,9 +156,9 @@ class VirtualCare(AnalysisModule):
     def video_to_async(self):
         return self.eda.async_summary()
 
-    @chart("Satisfaction scores recorded, missing or not expected", "bar", x="visit_type", y="visits",
+    @chart("Physician-reported score availability", "bar", x="visit_type", y="visits",
            color="score_status", stack=True, x_order=TYPES,
-           note="Describes whether a score exists, not how high it is. Async blanks are not expected.")
+           note="Scores are reported by physicians, not customers. Describes availability, not score level. Async blanks are not expected.")
     def satisfaction(self):
         return _long(self.eda.satisfaction_availability(), "visit_type", "score_status", "visits")
 
@@ -140,4 +202,8 @@ class VirtualCare(AnalysisModule):
             "customer_id": [None if i % 80 == 0 else f"demo-{int(rng.integers(0, 180)):03d}" for i in range(240)],
             "customer_viewed_date": [(start + pd.Timedelta(days=int(rng.integers(0, 330)))).isoformat()
                                      for _ in range(240)]})
-        return {"appointments": appointments, "reports": reports}
+        cohort = pd.DataFrame({"customer_id": [f"demo-{c:03d}" for c in range(190)],
+                               "por_approved": [c % 5 != 0 for c in range(190)]})
+        viewed = reports.groupby("customer_id").customer_viewed_date.min()
+        cohort["first_viewed_date"] = cohort.customer_id.map(viewed)
+        return {"appointments": appointments, "reports": reports, "customer_cohort": cohort}
