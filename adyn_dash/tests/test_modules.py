@@ -64,6 +64,20 @@ def test_switch_matrix_counts_first_vs_last():
     assert m.loc["combined pill", "progestin-only pill"] == 1 and m.loc["combined pill", "combined pill"] == 1
 
 
+def test_hormone_status_uses_latest_rx_before_test_and_formulation():
+    h = pd.DataFrame({"customer_id": ["a", "a", "b"], "sample_id": ["s1", "s2", "s3"], "hormone": ["E2"] * 3,
+                      "value": [50.0, 20.0, 40.0], "ref_low": 0.0, "ref_high": 100.0,
+                      "created_date": pd.to_datetime(["2024-01-01", "2024-03-01", "2024-03-01"])})
+    rx = pd.DataFrame({"customer_id": ["a", "b"], "sku": ["AD-BC-SLYND000", "AD-BC-DAYSEE00"],
+                       "date_order_placed": pd.to_datetime(["2024-02-01", "2023-01-01"])})
+    dob = pd.DataFrame({"customer_id": ["a", "b"], "date_of_birth": pd.to_datetime(["2000-01-01", "1990-01-01"])})
+    t = bio_clean.hormone_age_bc(bio_clean.clean_hormones(h), rx, dob, window_days=120).set_index(["customer_id", "bc_status"])
+    assert t.loc[("a", "off birth control"), "value"] == 50.0      # tested before the first order
+    assert t.loc[("a", "progestin only"), "value"] == 20.0         # Slynd ordered 29 days before
+    assert ("b", "off birth control") in t.index                    # last order over 120 days before
+    assert t.loc[("a", "off birth control"), "age_band"] == "18-24"
+
+
 # ---- funnel (Michelle) ---------------------------------------------------------------------------
 def test_bulk_accounts_are_split_from_customers():
     cols = funnel_clean.CUSTOMER_COLUMNS
