@@ -12,6 +12,7 @@ import pandas as pd
 from ..lib.prescriptions import calc
 from ..module import AnalysisModule, chart
 from ..source import Source
+from ..metrics import DELAY_UPPER_QUANTILE
 
 ORDER_COLUMNS = ("id", "customer_id", "date_order_placed", "date_order_paid", "sku", "bc_prescribed",
                  "quantity", "refills_allowed", "status", "customer_approved", "adyn_approved", "suspended")
@@ -96,13 +97,13 @@ class Prescriptions(AnalysisModule):
            note="Non-negative delays up to the 99th percentile.")
     def entry_delay(self):
         return calc.delay_histogram(self.data("rx_written"), "rx_written_date_time", "rx_creation_date_time",
-                                    unit="hours", nonnegative=True, upper_quantile=0.99)
+                                    unit="hours", nonnegative=True, upper_quantile=DELAY_UPPER_QUANTILE)
 
     @chart("Time from order receipt to packing (minutes)", "bar", x="bin_start", y="orders",
            note="Non-negative delays up to the 99th percentile.")
     def packing_delay(self):
         return calc.delay_histogram(self.data("rx_packed"), "order_receipt_date_time", "packed_date_time",
-                                    unit="minutes", nonnegative=True, upper_quantile=0.99)
+                                    unit="minutes", nonnegative=True, upper_quantile=DELAY_UPPER_QUANTILE)
 
     @chart("Time from order placement to payment (days)", "bar", x="bin_start", y="orders",
            note="All valid delays retained, one-day bins.")

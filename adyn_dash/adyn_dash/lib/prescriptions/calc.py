@@ -9,6 +9,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from ...metrics import SECONDS_PER_UNIT
+
 US_STATES = set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ "
                 "NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split())
 
@@ -111,7 +113,7 @@ def age_groups(ages: pd.DataFrame, width: int = 5) -> pd.DataFrame:
 
 
 def time_delays(data: pd.DataFrame, start_col: str, end_col: str, unit: str = "hours") -> pd.DataFrame:
-    seconds = {"days": 86400, "hours": 3600, "minutes": 60}
+    seconds = SECONDS_PER_UNIT
     if unit not in seconds:
         raise ValueError("unit must be 'days', 'hours', or 'minutes'")
     d = data.copy()

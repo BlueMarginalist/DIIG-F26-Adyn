@@ -1,0 +1,16 @@
+# Local settings and generated files
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+.Renviron
+setenv_*.sh
+.ipynb_checkpoints/
+staging_output/
+demo_output/
+output/
+.ruff_cache/
+.pytest_cache/

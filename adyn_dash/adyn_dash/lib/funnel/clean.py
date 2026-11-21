@@ -10,10 +10,7 @@ CUSTOMER_COLUMNS = ["customer_id", "age_at_signup", "state", "gift_redeemer", "b
                     "n_reserved", "result_approved"] + DATE_COLUMNS
 
 
-def require_columns(data, columns):
-    missing = set(columns) - set(data.columns)
-    if missing:
-        raise ValueError(f"Required columns missing: {', '.join(sorted(missing))}")
+from ...validation import require_columns
 
 
 def prepare_customers(data, cfg=None):

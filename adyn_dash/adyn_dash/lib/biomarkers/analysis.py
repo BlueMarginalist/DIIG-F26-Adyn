@@ -1,11 +1,12 @@
 """Summaries and tests. Every function takes DataFrames and returns a DataFrame."""
 import pandas as pd
 from scipy import stats
+from ...metrics import METHOD_MIN_N, VALID_SAMPLE_STATUS, DNA_SAMPLE_KIND, BLOOD_SAMPLE_KIND
 
 from .clean import thirds
 
-"""Per hormone: results, patients, median and share outside the reference range."""
 def hormone_summary(hormones):
+    """Per hormone: results, patients, median and share outside the reference range."""
     g = hormones.groupby("hormone")
     return pd.DataFrame({
         "n_values": g.size(),
@@ -15,14 +16,14 @@ def hormone_summary(hormones):
         "share_above": g["above_range"].mean(),
     })
 
-"""Per hormone: how many values are negative or infinite."""
 def placeholder_counts(hormones_raw):
+    """Per hormone: how many values are negative or infinite."""
     v = hormones_raw["value"]
     return hormones_raw.assign(negative=v < 0, infinite=v == float("inf")) \
         .groupby("hormone")[["negative", "infinite"]].sum()
 
-"""Most repeated value per hormone, how often it appears and when."""
 def spike_summary(hormones):
+    """Most repeated value per hormone, how often it appears and when."""
     counts = hormones.groupby(["hormone", "value"]).agg(
         n=("value", "size"), first_seen=("created_date", "min"), last_seen=("created_date", "max"))
     top = counts.sort_values("n", ascending=False).groupby(level="hormone").head(1)
@@ -30,33 +31,33 @@ def spike_summary(hormones):
     top["share_of_rows"] = top["n"] / hormones.groupby("hormone").size()
     return top
 
-"""Per sample: how many of its hormones equal that hormone's spike value."""
 def spike_samples(hormones):
+    """Per sample: how many of its hormones equal that hormone's spike value."""
     spikes = spike_summary(hormones)["value"]
     hit = hormones[hormones["value"] == hormones["hormone"].map(spikes)]
     return hit.groupby(["customer_id", "sample_id"]).agg(
         n_spiked_hormones=("hormone", "size"), created=("created_date", "min")).reset_index()
 
-"""Patients, count and share with `outcome` for each value of `group`.
-    `group` can be a column name or a Series aligned to patients (e.g. thirds()).
-    """
 def rate_by_group(patients, group, outcome="any_rx"):
+    """Patients, count and share with `outcome` for each value of `group`.
+        `group` can be a column name or a Series aligned to patients (e.g. thirds()).
+        """
     key = patients[group] if isinstance(group, str) else group
     g = patients[outcome].astype(float).groupby(key, observed=True)
     return pd.DataFrame({"patients": g.size(), "n_yes": g.sum().astype(int), "share": g.mean()})
 
-"""rate_by_group for each column split into thirds. Long table: column, third, ..."""
 def rate_by_thirds(patients, columns, outcome="any_rx"):
+    """rate_by_group for each column split into thirds. Long table: column, third, ..."""
     rows = []
     for col in columns:
         t = rate_by_group(patients, thirds(patients[col]), outcome)
         rows.append(t.rename_axis("third").reset_index().assign(variable=col))
     return pd.concat(rows, ignore_index=True)[["variable", "third", "patients", "n_yes", "share"]]
 
-"""Does each hormone relate to (a) any prescription, (b) number tried, (c) first product?
-    Mann-Whitney, Spearman and Kruskal-Wallis, with a Bonferroni cutoff.
-    """
 def hormone_tests(patients, hormones, alpha=0.05):
+    """Does each hormone relate to (a) any prescription, (b) number tried, (c) first product?
+        Mann-Whitney, Spearman and Kruskal-Wallis, with a Bonferroni cutoff.
+        """
     rows = []
     for h in hormones:
         d = patients.dropna(subset=[h])
@@ -75,24 +76,24 @@ def hormone_tests(patients, hormones, alpha=0.05):
     res.attrs["bonferroni_cutoff"] = cutoff
     return res
 
-"""Patients and orders per product, with its method type."""
 def products_summary(rx_orders):
+    """Patients and orders per product, with its method type."""
     return rx_orders.groupby(["product", "method_type"]).agg(
         patients=("customer_id", "nunique"), orders=("sku", "size")
     ).reset_index().sort_values("patients", ascending=False)
 
-"""Counts of first -> last product (or method type) among patients."""
 def switch_matrix(rx_patients, by="type"):
+    """Counts of first -> last product (or method type) among patients."""
     a, b = (f"first_{by}", f"last_{by}") if by == "type" else ("first_product", "last_product")
     return pd.crosstab(rx_patients[a], rx_patients[b])
 
-"""Crosstab of one medical-biography answer against the product patients chose."""
 def answer_by_product(answers, rx_patients, field, product_col="first_type"):
+    """Crosstab of one medical-biography answer against the product patients chose."""
     d = answers[[field]].join(rx_patients[[product_col]], how="inner")
     return pd.crosstab(d[field], d[product_col])
 
 """Per patient: valid DNA sample, valid blood sample, completed medical bio, has a report."""
-def north_star(samples, medbio, reports, valid_status="valid", complete_value=None):
+def north_star(samples, medbio, reports, valid_status=VALID_SAMPLE_STATUS, complete_value=None):
     """Per patient: valid DNA sample, valid blood sample, completed medical bio, has a report.
 
     Sample status 'valid' means usable. On staging `completion` is always empty,
@@ -103,8 +104,8 @@ def north_star(samples, medbio, reports, valid_status="valid", complete_value=No
     report_samples = set(reports["dna_sample_id"].dropna()) | set(reports["hormone_sample_id"].dropna())
     customers = pd.Index(samples["customer_id"].unique()).union(medbio["customer_id"].unique())
     out = pd.DataFrame(index=customers.rename("customer_id"))
-    out["valid_dna"] = out.index.isin(valid.loc[valid["kind"] == "KIT-SLV", "customer_id"])
-    out["valid_blood"] = out.index.isin(valid.loc[valid["kind"] == "KIT-BLD", "customer_id"])
+    out["valid_dna"] = out.index.isin(valid.loc[valid["kind"] == DNA_SAMPLE_KIND, "customer_id"])
+    out["valid_blood"] = out.index.isin(valid.loc[valid["kind"] == BLOOD_SAMPLE_KIND, "customer_id"])
     done = medbio if complete_value is None else medbio[medbio["completion"] == complete_value]
     # Reports from the newer pipeline (Nov 2023 on) don't link medbio_1_id but
     # carry the questionnaire answers, so a report with answers also counts
@@ -117,11 +118,11 @@ def north_star(samples, medbio, reports, valid_status="valid", complete_value=No
     out["missing_report"] = out["north_star"] & ~out["has_report"]
     return out
 
-"""Aggregate counts from north_star(), safe to share."""
 def north_star_counts(ns):
+    """Aggregate counts from north_star(), safe to share."""
     return ns[["valid_dna", "valid_blood", "medbio_complete", "north_star", "has_report", "missing_report"]].sum()
 
-def compare_by_type(patients, variables, type_col="first_type", min_n=3, alpha=0.05):
+def compare_by_type(patients, variables, type_col="first_type", min_n=METHOD_MIN_N, alpha=0.05):
     """Do numeric variables (hormones, dep_zscore) differ across product types?
 
     One row per variable: median per type, and a Kruskal-Wallis p-value across

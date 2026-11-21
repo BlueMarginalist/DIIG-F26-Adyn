@@ -44,6 +44,10 @@ class VirtualCare(AnalysisModule):
 
     @cached_property
     def eda(self) -> VirtualCareEDA:
+        return VirtualCareEDA(self.data("appointments"))
+
+    @cached_property
+    def report_eda(self) -> VirtualCareEDA:
         return VirtualCareEDA(self.data("appointments"), self.data("reports"))
 
     @chart("Completed visits per customer, by visit type", "bar", x="visit_group", y="customer_ids",
@@ -77,12 +81,12 @@ class VirtualCare(AnalysisModule):
            filters=("booking_type",),
            note="All appointment statuses included. A timing proxy per report, not first-ever booking.")
     def report_waits(self):
-        return _long(self.eda.report_wait_counts(), "wait_group", "booking_type", "reports")
+        return _long(self.report_eda.report_wait_counts(), "wait_group", "booking_type", "reports")
 
     @chart("Median days from report view to booking, by visit type", "bar", x="visit_type",
            y="median_wait_days", x_order=TYPES)
     def report_wait_by_type(self):
-        return self.eda.report_type_summary()
+        return self.report_eda.report_type_summary()
 
     @chart("Which visit type follows which", "heatmap", x="next_type", y="visit_type", color="pairs",
            note="Counts are pairs of consecutive visits, not people. Pairs touching tied timestamps are excluded.")
@@ -94,9 +98,9 @@ class VirtualCare(AnalysisModule):
     def video_to_async(self):
         return self.eda.async_summary()
 
-    @chart("Satisfaction scores recorded, missing or not expected", "bar", x="visit_type", y="visits",
+    @chart("Physician-reported score availability", "bar", x="visit_type", y="visits",
            color="score_status", stack=True, x_order=TYPES,
-           note="Describes whether a score exists, not how high it is. Async blanks are not expected.")
+           note="Physician-reported, not customer-reported. Describes availability, not score level. Async blanks are not expected.")
     def satisfaction(self):
         return _long(self.eda.satisfaction_availability(), "visit_type", "score_status", "visits")
 

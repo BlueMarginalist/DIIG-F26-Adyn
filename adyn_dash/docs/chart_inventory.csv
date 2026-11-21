@@ -1,0 +1,67 @@
+﻿chart_id,title,owner,internal,referenced_as_demo_candidate,priority_question_ids,recommendation,export_file,demo_test_status
+virtual_care.monthly_visits,Completed visits per month,Susan Li,False,False,,Consider adding if it supports a rated question; see registry,virtual_care/monthly_visits.json,ok
+virtual_care.quality,Data-quality checks,Susan Li,True,False,,Internal review only; do not expose automatically,virtual_care/quality.json,ok
+virtual_care.report_wait_by_type,"Median days from report view to booking, by visit type",Susan Li,False,False,RQ-R016,Consider adding if it supports a rated question; see registry,virtual_care/report_wait_by_type.json,ok
+virtual_care.report_waits,How soon after viewing a report customers book,Susan Li,False,False,RQ-R016,Consider adding if it supports a rated question; see registry,virtual_care/report_waits.json,ok
+virtual_care.satisfaction,Physician-reported score availability,Susan Li,False,True,RQ-R020,Review candidate mapping and exact semantics,virtual_care/satisfaction.json,ok
+virtual_care.transitions,Which visit type follows which,Susan Li,False,False,RQ-R017,Consider adding if it supports a rated question; see registry,virtual_care/transitions.json,ok
+virtual_care.video_to_async,Days from a video visit to the next async visit,Susan Li,False,False,RQ-R018,Consider adding if it supports a rated question; see registry,virtual_care/video_to_async.json,ok
+virtual_care.visit_frequency,"Completed visits per customer, by visit type",Susan Li,False,True,RQ-R008; RQ-R011,Review candidate mapping and exact semantics,virtual_care/visit_frequency.json,ok
+virtual_care.visit_gaps,Days between a customer's visits,Susan Li,False,False,RQ-R014; RQ-R015,Consider adding if it supports a rated question; see registry,virtual_care/visit_gaps.json,ok
+virtual_care.visit_spans,Typical time covered by repeat visits,Susan Li,False,False,RQ-R013,Consider adding if it supports a rated question; see registry,virtual_care/visit_spans.json,ok
+biomarkers.bc_goals_by_type,Birth control goals and the method chosen,Shihyun Kim,False,False,,Consider adding if it supports a rated question; see registry,biomarkers/bc_goals_by_type.json,ok
+biomarkers.clot_carriers_by_type,Clotting-variant carriers by first method type,Shihyun Kim,False,True,RQ-R033,Review candidate mapping and exact semantics,biomarkers/clot_carriers_by_type.json,ok
+biomarkers.hormone_by_type,Median hormone level by first method type,Shihyun Kim,False,True,RQ-R038,Review candidate mapping and exact semantics,biomarkers/hormone_by_type.json,ok
+biomarkers.hormone_spikes,Most repeated hormone value (possible placeholder),Shihyun Kim,True,False,,Internal review only; do not expose automatically,biomarkers/hormone_spikes.json,ok
+biomarkers.hormone_tests,Statistical tests: hormones vs prescriptions,Shihyun Kim,True,False,RQ-R030; RQ-R031,Internal review only; do not expose automatically,biomarkers/hormone_tests.json,ok
+biomarkers.hormones_out_of_range,Hormone results outside the reference range,Shihyun Kim,False,True,,Review candidate mapping and exact semantics,biomarkers/hormones_out_of_range.json,ok
+biomarkers.north_star,North Star: complete test packages,Shihyun Kim,False,True,RQ-R037; RQ-R039; RQ-R040,Review candidate mapping and exact semantics,biomarkers/north_star.json,ok
+biomarkers.placeholder_counts,Placeholder hormone values dropped,Shihyun Kim,True,False,,Internal review only; do not expose automatically,biomarkers/placeholder_counts.json,ok
+biomarkers.products,Patients per birth control product,Shihyun Kim,False,False,,Consider adding if it supports a rated question; see registry,biomarkers/products.json,ok
+biomarkers.rx_by_depression_third,"Share of patients with a prescription, by depression-risk score",Shihyun Kim,False,False,,Consider adding if it supports a rated question; see registry,biomarkers/rx_by_depression_third.json,ok
+biomarkers.rx_by_hormone_third,"Share of patients with a prescription, by hormone level",Shihyun Kim,False,False,RQ-R030,Consider adding if it supports a rated question; see registry,biomarkers/rx_by_hormone_third.json,ok
+biomarkers.side_effects_by_type,Side effects to avoid and the method chosen,Shihyun Kim,False,False,,Consider adding if it supports a rated question; see registry,biomarkers/side_effects_by_type.json,ok
+biomarkers.switching,First vs last method type,Shihyun Kim,False,False,RQ-R021; RQ-R031; RQ-R034,Consider adding if it supports a rated question; see registry,biomarkers/switching.json,ok
+prescriptions.approval_flags,Approval and suspension flags,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/approval_flags.json,ok
+prescriptions.cost_links,Order-to-packing (cost) link checks,Morgan Kay,True,False,RQ-R023; RQ-R024,Internal review only; do not expose automatically,prescriptions/cost_links.json,ok
+prescriptions.customer_age,Age of customers,Morgan Kay,False,False,RQ-R029,Consider adding if it supports a rated question; see registry,prescriptions/customer_age.json,ok
+prescriptions.entry_delay,Time from prescription writing to entry (hours),Morgan Kay,False,False,RQ-R026,Consider adding if it supports a rated question; see registry,prescriptions/entry_delay.json,ok
+prescriptions.missing_values,Missing values per column in orders,Morgan Kay,True,False,,Internal review only; do not expose automatically,prescriptions/missing_values.json,ok
+prescriptions.order_shipment_links,Order-to-shipment link checks,Morgan Kay,True,False,,Internal review only; do not expose automatically,prescriptions/order_shipment_links.json,ok
+prescriptions.order_status,Orders by status,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/order_status.json,ok
+prescriptions.orders_by_bc,Orders by birth-control flag,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/orders_by_bc.json,ok
+prescriptions.orders_by_month,Orders placed per month,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/orders_by_month.json,ok
+prescriptions.orders_by_sku,Orders by product (SKU),Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/orders_by_sku.json,ok
+prescriptions.packing_delay,Time from order receipt to packing (minutes),Morgan Kay,False,False,RQ-R026,Consider adding if it supports a rated question; see registry,prescriptions/packing_delay.json,ok
+prescriptions.packing_delay_trend,Packing delay by order-receipt month,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/packing_delay_trend.json,ok
+prescriptions.payment_delay,Time from order placement to payment (days),Morgan Kay,False,False,RQ-R026,Consider adding if it supports a rated question; see registry,prescriptions/payment_delay.json,ok
+prescriptions.payment_delay_by_bc,Payment delay by birth-control flag,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/payment_delay_by_bc.json,ok
+prescriptions.payment_delay_by_sku,Payment delay by product,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/payment_delay_by_sku.json,ok
+prescriptions.payment_delay_trend,Payment delay by order month,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/payment_delay_trend.json,ok
+prescriptions.prescriptions_per_patient,Prescriptions written per patient,Morgan Kay,False,False,RQ-R035,Consider adding if it supports a rated question; see registry,prescriptions/prescriptions_per_patient.json,ok
+prescriptions.quantity_by_bc,Quantity summary by birth-control flag,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/quantity_by_bc.json,ok
+prescriptions.quantity_distribution,Quantity prescribed,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/quantity_distribution.json,ok
+prescriptions.refills_allowed,Refills allowed per order,Morgan Kay,False,False,,Consider adding if it supports a rated question; see registry,prescriptions/refills_allowed.json,ok
+prescriptions.repeat_customers,Customers who ordered more than once,Morgan Kay,False,False,RQ-R028; RQ-R035,Consider adding if it supports a rated question; see registry,prescriptions/repeat_customers.json,ok
+prescriptions.shipments_by_state,Shipments by state,Morgan Kay,False,False,RQ-R025; RQ-R029,Consider adding if it supports a rated question; see registry,prescriptions/shipments_by_state.json,ok
+funnel.cohort_by_month,"Paid orders by month, with profile and shipping rates",Michelle Zuo,False,True,,Review candidate mapping and exact semantics,funnel/cohort_by_month.json,ok
+funnel.date_quality,Which date columns are bulk-stamped,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/date_quality.json,ok
+funnel.date_sanity,Do the dates agree about order?,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/date_sanity.json,ok
+funnel.email_domains,E-mail domains with many buyers,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/email_domains.json,ok
+funnel.funnel,Where paying customers drop off,Michelle Zuo,False,True,RQ-R037; RQ-R039,Review candidate mapping and exact semantics,funnel/funnel.json,ok
+funnel.furthest_step,Where paid orders get stuck,Michelle Zuo,False,True,RQ-R005,Review candidate mapping and exact semantics,funnel/furthest_step.json,ok
+funnel.kit_outcomes,Saliva and blood samples: how many were valid,Michelle Zuo,False,True,RQ-R002; RQ-R033,Review candidate mapping and exact semantics,funnel/kit_outcomes.json,ok
+funnel.replaced_sample_status,Condition of the samples that were replaced,Michelle Zuo,False,False,,Consider adding if it supports a rated question; see registry,funnel/replaced_sample_status.json,ok
+funnel.replacement_buckets,Customers by number of replacement kits,Michelle Zuo,False,True,,Review candidate mapping and exact semantics,funnel/replacement_buckets.json,ok
+funnel.replacement_reason_classes,Why kits were replaced,Michelle Zuo,False,False,,Consider adding if it supports a rated question; see registry,funnel/replacement_reason_classes.json,ok
+funnel.replacement_vs_viewing,"Result viewing, with and without a replacement kit",Michelle Zuo,False,True,RQ-R003,Review candidate mapping and exact semantics,funnel/replacement_vs_viewing.json,ok
+funnel.replacements_by_month,Replacement kits by month,Michelle Zuo,False,False,,Consider adding if it supports a rated question; see registry,funnel/replacements_by_month.json,ok
+funnel.result_rates_by_year,"After shipping: results, approvals and views, by year paid",Michelle Zuo,False,True,,Review candidate mapping and exact semantics,funnel/result_rates_by_year.json,ok
+funnel.shared_ip_summary,Orders on shared IP addresses,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/shared_ip_summary.json,ok
+funnel.ship_rate_by_state,"Share of paying customers who shipped, by state",Michelle Zuo,False,True,RQ-R002,Review candidate mapping and exact semantics,funnel/ship_rate_by_state.json,ok
+funnel.ship_rate_by_year,"Share of paying customers who shipped, by year paid",Michelle Zuo,False,False,,Consider adding if it supports a rated question; see registry,funnel/ship_rate_by_year.json,ok
+funnel.staff_roles,Staff and provider accounts with orders,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/staff_roles.json,ok
+funnel.stage_gaps,Days between stages,Michelle Zuo,False,True,RQ-R005; RQ-R006; RQ-R041,Review candidate mapping and exact semantics,funnel/stage_gaps.json,ok
+funnel.steps_by_year,Funnel steps by year paid,Michelle Zuo,False,False,RQ-R006; RQ-R039,Consider adding if it supports a rated question; see registry,funnel/steps_by_year.json,ok
+funnel.test_like_accounts,Test-like accounts,Michelle Zuo,True,False,,Internal review only; do not expose automatically,funnel/test_like_accounts.json,ok
+funnel.timing_steps,Days per step from payment to result approval,Michelle Zuo,False,True,RQ-R003; RQ-R005; RQ-R007; RQ-R041,Review candidate mapping and exact semantics,funnel/timing_steps.json,ok

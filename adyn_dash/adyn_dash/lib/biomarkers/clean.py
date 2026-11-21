@@ -3,20 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Product names and method types, inferred from the sku codes. Confirm with the team.
-PRODUCTS = {
-    "AD-BC-DAYSEE00": ("Daysee", "combined pill"),
-    "AD-BC-JUNE20FE": ("Junel Fe", "combined pill"),
-    "AD-BC-FALMIN20": ("Falmina", "combined pill"),
-    "AD-BC-ALTAVE00": ("Altavera", "combined pill"),
-    "AD-BC-DROS03LE": ("Drospirenone/EE", "combined pill"),
-    "AD-BC-NEXT3142": ("Nextstellis", "combined pill"),
-    "AD-BC-SLYND000": ("Slynd", "progestin-only pill"),
-    "AD-BC-DEPOTP00": ("Depo-Provera", "injection"),
-    "AD-BC-XULANE00": ("Xulane", "patch"),
-    "AD-BC-NUVARI00": ("NuvaRing", "ring"),
-}
-# Methods that contain estrogen (relevant for clotting risk)
-ESTROGEN_TYPES = {"combined pill", "patch", "ring"}
+from ...metrics import PRODUCTS, ESTROGEN_TYPES
 
 def clean_answers(answers):
     """Normalize apostrophes and treat '***' / empty strings as missing."""

@@ -7,6 +7,9 @@ Michelle Zuo's Config; the connection variables follow the ADYN_POSTGRES_* conve
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
+
+from .metrics import CONFIG_DEFAULTS
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -16,6 +19,7 @@ class Config:
     # --- connection -------------------------------------------------------------
     env_prefix: str = "ADYN_POSTGRES"      # reads <PREFIX>_HOST / _PORT / _DB / _USER / _PASSWORD
     connect_timeout: int = 10
+    database_schema: Optional[str] = None  # or <prefix>_SCHEMA; database default when unset
     sql_override_dir: Optional[str] = None  # a folder of .sql files that replaces the bundled queries
 
     # --- privacy guard ----------------------------------------------------------------
@@ -25,38 +29,46 @@ class Config:
 
     # --- reporting windows --------------------------------------------------------------
     as_of: Optional[str] = None            # date used for ages (None = today)
-    cohort_start: str = "2023-01-01"       # funnel cohort chart: [start, end)
-    cohort_end: str = "2024-01-01"
-    timing_since: str = "2023-01-01"       # timing is measured only for orders paid on/after this date
+    cohort_start: str = CONFIG_DEFAULTS['cohort_start']       # funnel cohort chart: [start, end)
+    cohort_end: str = CONFIG_DEFAULTS['cohort_end']
+    timing_since: str = CONFIG_DEFAULTS['timing_since']       # timing is measured only for orders paid on/after this date
 
     # --- funnel: who counts as a customer ----------------------------------------------------
-    replacement_pattern: str = "%replacement%"  # orders.name ILIKE this => replacement order
-    bulk_account_min_orders: int = 10           # accounts with this many orders or more are excluded
-    customer_roles: Tuple[int, ...] = (2, 3)    # 2 customer, 3 purchaser
-    staff_roles: Tuple[int, ...] = (0, 1, 5)    # 0 admin, 1 editor, 5 physician
+    replacement_pattern: str = CONFIG_DEFAULTS['replacement_pattern']  # orders.name ILIKE this => replacement order
+    bulk_account_min_orders: int = CONFIG_DEFAULTS['bulk_account_min_orders']           # accounts with this many orders or more are excluded
+    customer_roles: Tuple[int, ...] = CONFIG_DEFAULTS['customer_roles']    # 2 customer, 3 purchaser
+    staff_roles: Tuple[int, ...] = CONFIG_DEFAULTS['staff_roles']    # 0 admin, 1 editor, 5 physician
 
     # --- funnel: order status names (underscores are normalised to spaces in SQL) -----------------
-    reserved_status: str = "reserved"
-    sent_to_allied_status: str = "allied reserved"
-    shipped_status: str = "left allied facility"
+    reserved_status: str = CONFIG_DEFAULTS['reserved_status']
+    sent_to_allied_status: str = CONFIG_DEFAULTS['sent_to_allied_status']
+    shipped_status: str = CONFIG_DEFAULTS['shipped_status']
 
     # --- funnel: test / internal account heuristics -----------------------------------------------
-    test_email_patterns: Tuple[str, ...] = ("%test%", "%+%", "%example.%", "%mailinator%")
-    test_name_pattern: str = "%test%"
-    shared_ip_min_orders: int = 5
-    domain_min_buyers: int = 5
+    test_email_patterns: Tuple[str, ...] = CONFIG_DEFAULTS['test_email_patterns']
+    test_name_pattern: str = CONFIG_DEFAULTS['test_name_pattern']
+    shared_ip_min_orders: int = CONFIG_DEFAULTS['shared_ip_min_orders']
+    domain_min_buyers: int = CONFIG_DEFAULTS['domain_min_buyers']
 
     # --- funnel: replacement reasons (shipments_replacements.reason) ------------------------------
-    reason_min_count: int = 2
-    placeholder_like_pattern: str = "%test%"
-    placeholder_reasons: Tuple[str, ...] = ("some reason", "reason", "new reason", "reason for replacement")
-    structured_reason_prefixes: Tuple[str, ...] = ("Lab reported%", "Mail:%", "Customer reported%")
+    reason_min_count: int = CONFIG_DEFAULTS['reason_min_count']
+    placeholder_like_pattern: str = CONFIG_DEFAULTS['placeholder_like_pattern']
+    placeholder_reasons: Tuple[str, ...] = CONFIG_DEFAULTS['placeholder_reasons']
+    structured_reason_prefixes: Tuple[str, ...] = CONFIG_DEFAULTS['structured_reason_prefixes']
 
     # --- funnel: grouping --------------------------------------------------------------------------
-    small_n: int = 20                           # groups smaller than this are flagged small_n
-    top_states: int = 8
-    age_bins: Tuple[int, ...] = (0, 24, 29, 34, 200)
-    age_labels: Tuple[str, ...] = ("<=24", "25-29", "30-34", "35+")
+    small_n: int = CONFIG_DEFAULTS['small_n']                           # groups smaller than this are flagged small_n
+    top_states: int = CONFIG_DEFAULTS['top_states']
+    age_bins: Tuple[int, ...] = CONFIG_DEFAULTS['age_bins']
+    age_labels: Tuple[str, ...] = CONFIG_DEFAULTS['age_labels']
+
+    def __post_init__(self):
+        if self.connect_timeout <= 0 or self.small_n <= 0:
+            raise ValueError("Timeout and small-group threshold must be positive")
+
+    @property
+    def connection_schema(self):
+        return self.database_schema or os.getenv(f"{self.env_prefix}_SCHEMA")
 
     @property
     def sql_dir(self) -> Path:

@@ -1,23 +1,11 @@
 """Small preparation functions. Inputs are copied, never modified in place."""
 import pandas as pd
 
-VISIT_TYPES = ["15-minute video", "25-minute video", "Async", "Unknown"]
-VIDEO_TYPES = VISIT_TYPES[:2]
-SKU_TYPES = {
-    "VC-SYNC-15CHRG": "15-minute video",
-    "VC-SYNC-25CHRG": "25-minute video",
-    "VC-ASYC-ADCHRG": "Async",
-    "VC-ASYC-ADFREE": "Async",
-}
-WAIT_GROUPS = ["Within 1 day", "Over 1–7 days", "Over 7–30 days",
-               "Over 30 days", "No later booking found"]
-SCORE_STATUSES = ["Recorded", "Not expected", "Missing", "Expectation unknown"]
+from ...metrics import (VISIT_TYPES, VIDEO_TYPES, SKU_TYPES, WAIT_GROUPS,
+                        SCORE_STATUSES, COMPLETED_STATUS, COMPLETED_OUTCOME)
 
 
-def require_columns(data, columns):
-    missing = set(columns) - set(data.columns)
-    if missing:
-        raise ValueError(f"Required columns missing: {', '.join(sorted(missing))}")
+from ...validation import require_columns
 
 
 def prepare_appointments(data):
@@ -37,8 +25,8 @@ def prepare_appointments(data):
 
 def completed_visits(data):
     return data.loc[
-        data.status.eq("completed") &
-        data.appointment_outcome.eq("visit complete") &
+        data.status.eq(COMPLETED_STATUS) &
+        data.appointment_outcome.eq(COMPLETED_OUTCOME) &
         data.customer_id.notna()
     ].copy()
 

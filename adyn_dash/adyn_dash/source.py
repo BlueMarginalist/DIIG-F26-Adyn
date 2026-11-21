@@ -10,6 +10,13 @@ import pandas as pd
 from .config import Config
 
 
+class SourceUnavailable(RuntimeError):
+    """A known data absence that the build can render as an empty state."""
+    def __init__(self, key, reason):
+        self.key, self.reason = key, reason
+        super().__init__(f"{key}: {reason}")
+
+
 @dataclass(frozen=True)
 class Source:
     """One dataset: a .sql file plus the columns the analyses need from it.
@@ -47,11 +54,22 @@ class DataStore:
         self.backend = backend
         self.cfg = cfg or Config()
         self._cache: Dict[str, pd.DataFrame] = {}
+        self._unavailable = {}
 
     def get(self, source: Source) -> pd.DataFrame:
+        if source.key in self._unavailable:
+            raise self._unavailable[source.key]
         if source.key not in self._cache:
-            self._cache[source.key] = source.check(self.backend.fetch(source, self.cfg))
+            try:
+                frame = source.check(self.backend.fetch(source, self.cfg))
+                if frame.empty:
+                    raise SourceUnavailable(source.key, "empty_source")
+                self._cache[source.key] = frame
+            except SourceUnavailable as error:
+                self._unavailable[source.key] = error
+                raise
         return self._cache[source.key]
 
     def refresh(self) -> None:
         self._cache.clear()
+        self._unavailable.clear()

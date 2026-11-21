@@ -11,7 +11,7 @@ from decimal import Decimal
 import pandas as pd
 
 from .config import Config
-from .source import Source
+from .source import Source, SourceUnavailable
 
 
 class PostgresBackend:
@@ -35,15 +35,27 @@ class PostgresBackend:
             options="-c default_transaction_read_only=on", connect_timeout=cfg.connect_timeout,
         )
         self.conn.autocommit = True
+        if cfg.connection_schema:
+            try:
+                from psycopg import sql
+                with self.conn.cursor() as cursor:
+                    cursor.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(cfg.connection_schema)))
+            except Exception:
+                self.conn.close()
+                raise
 
     def fetch(self, source: Source, cfg: Config) -> pd.DataFrame:
         sql = source.sql(cfg)
         # Only queries with named parameters are interpolated, so literal % signs elsewhere are safe.
         params = cfg.params() if "%(" in sql else None
-        with self.conn.cursor() as cursor:
-            cursor.execute(sql, params)
-            columns = [col.name for col in cursor.description]
-            return _tidy(pd.DataFrame(cursor.fetchall(), columns=columns))
+        from psycopg.errors import UndefinedTable
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute(sql, params)
+                columns = [col.name for col in cursor.description]
+                return _tidy(pd.DataFrame(cursor.fetchall(), columns=columns))
+        except UndefinedTable as error:
+            raise SourceUnavailable(source.key, "missing_relation") from error
 
     def close(self) -> None:
         self.conn.close()

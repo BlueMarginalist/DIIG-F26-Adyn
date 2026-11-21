@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -24,7 +24,7 @@ import pandas as pd
 from .database import DemoBackend, PostgresBackend
 from .config import Config
 from .modules import ALL_MODULES
-from .source import DataStore
+from .source import DataStore, SourceUnavailable
 
 
 def _clean_value(v):
@@ -36,7 +36,7 @@ def _clean_value(v):
         return None if (math.isnan(v) or math.isinf(v)) else float(v)
     if isinstance(v, (np.bool_,)):
         return bool(v)
-    if isinstance(v, (pd.Timestamp, datetime)):
+    if isinstance(v, (pd.Timestamp, datetime, date)):
         return v.isoformat()
     if isinstance(v, pd.Period):
         return str(v)
@@ -73,15 +73,29 @@ def build(modules: Optional[Iterable[str]] = None, out: str = "dashboard/data", 
                 entry = {"module": klass.name, "module_title": klass.title, "owner": klass.owner,
                          "id": f"{klass.name}.{spec.name}", "spec": spec.as_dict(),
                          "assumptions": list(klass.assumptions)}
+                path = out_dir / klass.name / f"{spec.name}.json"
+                path.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     table = module.run(spec.name)
-                    path = out_dir / klass.name / f"{spec.name}.json"
-                    path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(json.dumps(to_records(table), indent=1), encoding="utf-8")
-                    entry.update(status="ok", rows=len(table), columns=[str(c) for c in table.columns],
-                                 file=f"{klass.name}/{spec.name}.json")
+                    entry.update(status="empty" if table.empty else "ok", rows=len(table),
+                                 columns=[str(c) for c in table.columns], file=f"{klass.name}/{spec.name}.json")
+                    if table.empty:
+                        entry.update(reason="no_matching_records", message="No matching data is available.")
+                    if table.attrs:
+                        entry["analysis_metadata"] = json.loads(json.dumps(table.attrs, default=_clean_value))
+                except SourceUnavailable as error:
+                    path.write_text("[]", encoding="utf-8")
+                    entry.update(status="empty", reason=error.reason, source=error.key,
+                                 message="Data is unavailable for this chart.", rows=0,
+                                 columns=[], file=f"{klass.name}/{spec.name}.json")
                 except Exception as error:  # noqa: BLE001  one failing chart must not stop the build
-                    entry.update(status="error", error=f"{type(error).__name__}: {error}"[:300])
+                    path.write_text("[]", encoding="utf-8")
+                    # Database exception details can contain values/connection context.
+                    message = (type(error).__name__ if type(error).__module__.startswith("psycopg")
+                               else f"{type(error).__name__}: {error}"[:300])
+                    entry.update(status="error", error=message, rows=0, columns=[],
+                                 file=f"{klass.name}/{spec.name}.json")
                 entries.append(entry)
     finally:
         backend.close()
@@ -98,12 +112,16 @@ def main(argv=None) -> int:
     p.add_argument("--modules", help="comma-separated module names (default: all)")
     p.add_argument("--out", default="dashboard/data")
     p.add_argument("--as-of", help="date used for ages (default: today)")
+    p.add_argument("--schema", help="database schema (or ADYN_POSTGRES_SCHEMA)")
+    p.add_argument("--sql-override-dir", help="optional folder of compatible replacement queries")
     a = p.parse_args(argv)
-    cfg = Config(as_of=a.as_of) if a.as_of else Config()
+    cfg = Config(as_of=a.as_of, database_schema=a.schema, sql_override_dir=a.sql_override_dir) if a.as_of else Config()
     manifest = build(a.modules.split(",") if a.modules else None, a.out, a.demo, a.env_file, cfg)
     ok = [c for c in manifest["charts"] if c["status"] == "ok"]
-    bad = [c for c in manifest["charts"] if c["status"] != "ok"]
+    bad = [c for c in manifest["charts"] if c["status"] == "error"]
+    empty = [c for c in manifest["charts"] if c["status"] == "empty"]
     print(f"Built {len(ok)} charts into {Path(a.out).resolve()}")
+    print(f"Empty states: {len(empty)}; errors: {len(bad)}")
     for c in bad:
         print(f"  FAILED {c['id']}: {c['error']}")
     return 1 if bad else 0
