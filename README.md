@@ -1,19 +1,31 @@
-# Adyn customer analytics
+# Adyn Customer Analytics
 
-Backend analyses for the team dashboard. The active combined Python package is in
-[`adyn_dash/`](adyn_dash/README.md), with setup and build instructions there.
+This project prepares data for the Adyn dashboard.
 
-| Area | Analyst | Module |
-|---|---|---|
-| Fulfillment and customer funnel | Michelle Zuo | `funnel` |
-| Virtual care | Susan Li | `virtual_care` |
-| Hormones, genetics and products | Shihyun Kim | `biomarkers` |
-| Prescription journey | Morgan Kay | `prescriptions` |
+## Analysis areas
 
-All four modules use the same configuration, data store, SQL source layout, and
-aggregate-table chart interface. Metric rules live in `adyn_dash/adyn_dash/metrics.py`.
-The preliminary R notebook is retained as reference; Python does not replace every check.
+- Michelle: test fulfillment and sample returns
+- Susan: virtual care
+- Shihyun: hormones and genetics
+- Morgan: prescriptions
 
-See the [question-to-chart registry and demo audit](adyn_dash/docs/cleanup_review.md).
-This cleanup is based on the supplied integration snapshot; Susan's newer dashboard
-branch is separate and must be reconciled before a team merge. No branch has been merged.
+## Useful links
+
+- [Setup and run instructions](adyn_dash/README.md)
+- [Shared metric definitions](adyn_dash/adyn_dash/metrics.py)
+- [Cleanup notes and draft question/chart reviews](adyn_dash/docs/cleanup_review.md)
+
+## Cleanup status
+
+The cleanup is on the `backend-cleanup` branch for review.
+
+- All 41 automated tests passed.
+- The configured Ruff code checks passed.
+- All 66 chart outputs built successfully against staging.
+
+Michelle's review and combining Susan's newer virtual care updates
+with this cleanup are still pending. Nothing has been merged into
+`integration` yet.
+
+
+
