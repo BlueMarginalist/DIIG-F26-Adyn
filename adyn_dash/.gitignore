@@ -8,3 +8,6 @@ setenv_*
 dashboard/data/
 demo_output/
 output/
+
+# Local staging aggregates are regenerated, not published with source code.
+staging_output/

@@ -69,13 +69,13 @@ class BackendChecks(unittest.TestCase):
             self.assertEqual(states['monthly_visits']['status'], 'ok')
             self.assertEqual(states['visit_frequency']['status'], 'ok')
 
-    def test_all_empty_sources_make_66_empty_states(self):
+    def test_all_empty_sources_make_empty_states(self):
         class Backend(DemoBackend):
             def fetch(self, source, cfg): return super().fetch(source, cfg).iloc[:0]
         with tempfile.TemporaryDirectory() as folder:
             with patch('adyn_dash.build.PostgresBackend', return_value=Backend(ALL_MODULES.values())):
                 result = build(out=folder)
-            self.assertEqual(len(result['charts']), 66)
+            self.assertEqual(len(result['charts']), sum(len(m.charts()) for m in ALL_MODULES.values()))
             self.assertTrue(all(c['status'] == 'empty' for c in result['charts']))
             for entry in result['charts']:
                 self.assertEqual(json.loads((Path(folder)/entry['file']).read_text()), [])

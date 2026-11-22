@@ -77,6 +77,8 @@ def build(modules: Optional[Iterable[str]] = None, out: str = "dashboard/data", 
                 path.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     table = module.run(spec.name)
+                    if "export_metadata" in table.attrs:
+                        entry["export_metadata"] = json.loads(json.dumps(table.attrs["export_metadata"], default=_clean_value))
                     path.write_text(json.dumps(to_records(table), indent=1), encoding="utf-8")
                     entry.update(status="empty" if table.empty else "ok", rows=len(table),
                                  columns=[str(c) for c in table.columns], file=f"{klass.name}/{spec.name}.json")
@@ -114,8 +116,11 @@ def main(argv=None) -> int:
     p.add_argument("--as-of", help="date used for ages (default: today)")
     p.add_argument("--schema", help="database schema (or ADYN_POSTGRES_SCHEMA)")
     p.add_argument("--sql-override-dir", help="optional folder of compatible replacement queries")
+    p.add_argument("--vc-data-through", help="provisional inclusive UTC cutoff for virtual-care repeat charts")
+    p.add_argument("--vc-window-days", type=int, default=90)
     a = p.parse_args(argv)
-    cfg = Config(as_of=a.as_of, database_schema=a.schema, sql_override_dir=a.sql_override_dir) if a.as_of else Config()
+    cfg = Config(as_of=a.as_of, database_schema=a.schema, sql_override_dir=a.sql_override_dir,
+                 vc_data_through=a.vc_data_through, vc_window_days=a.vc_window_days)
     manifest = build(a.modules.split(",") if a.modules else None, a.out, a.demo, a.env_file, cfg)
     ok = [c for c in manifest["charts"] if c["status"] == "ok"]
     bad = [c for c in manifest["charts"] if c["status"] == "error"]

@@ -21,7 +21,7 @@ Four modules, one per analyst's work, all following the same interface:
 pip install -e ".[test]"
 python -m pytest
 python -m adyn_dash.build --demo --out dashboard/data                  # synthetic data, no database
-python -m adyn_dash.build --env-file .env --out dashboard/data         # live, read-only
+python -m adyn_dash.build --env-file .env --vc-data-through YYYY-MM-DD --out dashboard/data  # live; replace cutoff
 python -m adyn_dash.build --demo --modules funnel,virtual_care         # a subset
 ```
 
@@ -85,12 +85,10 @@ tests/
 
 * **The demo bypasses SQL.** `DemoBackend` serves synthetic tables directly, so the `.sql` files are not run
   in demo mode. Only the framework and the Python logic are exercised. A seeded test database is the next step.
-* **This cleanup has not been tested against the client database.** All 66 integration chart tables were
-  exercised with demo data. Susan previously tested newer virtual care code on her separate branch; that
-  does not validate this integration snapshot or the other modules against production.
+* Demo tests exercise Python logic, not SQL. Earlier local staging builds succeeded on the separate branches; the combined version must be rebuilt against staging before claiming live validation. Production compatibility remains unverified.
 * **Some queries reference tables the analysts' scripts used** (for example `shippingaddresses`,
   `coupons_redeemers`, `customerintake`). If one is missing in the client database, that source fails and its
-  charts are marked as errors in the manifest.
+  charts are marked as empty states in the manifest; other query failures remain errors.
 * The Quarto / Observable page is not part of this package yet.
 
 ## Integration cleanup: configuration and empty states
@@ -144,3 +142,63 @@ It must consume this status contract to display empty states in the UI. This bac
 not make the existing static demo a live dashboard.
 
 See [cleanup review](docs/cleanup_review.md) for source mappings, limitations, tests and merge guidance.
+
+## Virtual care: run and inspect exports
+
+Run these commands from the folder containing this README and `pyproject.toml` (the outer
+`adyn_dash` folder, not the inner Python package):
+
+```bash
+python -m pip install -e ".[test,database]"
+python -m pytest -q
+python -m adyn_dash.build --demo --modules virtual_care --out demo_output
+python -m adyn_dash.build --modules virtual_care --env-file ../.Renviron --vc-data-through 2026-03-04 --out staging_output
+```
+
+The last command reproduces the provisional staging analysis through March 4, 2026, inclusive
+in UTC. Replace the date only when the available follow-up period is established. The latest
+observed visit is not proof that data collection is complete through that date. The cutoff applies
+to the four repeat-window exports; other virtual care charts use their full source data.
+Use `--vc-window-days 90` to specify the repeat window (90 is the default).
+Without an explicit live cutoff, the four repeat-window charts are recorded as errors.
+The demo uses synthetic data and a separate aggregate repeat fixture; it does not test the SQL.
+
+The build writes 18 chart tables under `staging_output/virtual_care/` and an index,
+`staging_output/manifest.json`. Check each chart's `status`; the command exits with an error
+if any chart fails. Internal charts are marked `spec.internal` and should remain hidden from
+client-facing views. Generated staging output stays local and is ignored by Git.
+
+Each virtual care manifest entry includes `export_metadata`:
+
+- `entry_count` and `count_unit` identify the population or observations contributing to that chart.
+  Counts may refer to customers, visits, report matches, visit pairs, or customer/type memberships.
+  They are not interchangeable. Per-group counts and denominators remain in the chart tables.
+- `missing_value_note` explains how missing values, Unknown categories and empty groups are handled.
+- Where applicable, `completed_source_missing_counts` gives source-wide missing counts.
+  These checks overlap and are not chart-specific exclusions or values to subtract from every chart.
+- Report-wait exports also include aggregate matching counts. Metadata remains available even
+  when a chart table is empty. JSON `null` represents an unavailable statistic, not zero.
+
+Example inspection:
+
+```bash
+python - <<'PYCODE'
+import json
+from pathlib import Path
+manifest = json.loads(Path("staging_output/manifest.json").read_text())
+for chart in manifest["charts"]:
+    if chart["module"] != "virtual_care":
+        continue
+    if chart["status"] != "ok":
+        print(chart["id"], chart.get("message", chart.get("error", "Unavailable")))
+        continue
+    info = chart["export_metadata"]
+    print(chart["id"], info["entry_count"], info["count_unit"])
+    print("  Missing values:", info["missing_value_note"])
+PYCODE
+```
+
+Database settings are `ADYN_POSTGRES_HOST`, `ADYN_POSTGRES_PORT`, `ADYN_POSTGRES_DB`,
+`ADYN_POSTGRES_USER` and `ADYN_POSTGRES_PASSWORD`. `--env-file` is optional when these
+are already set. Keep environment files local. See
+[virtual care integration notes](docs_virtual_care_integration.md) for definitions and limitations.

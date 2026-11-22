@@ -10,8 +10,10 @@ from dataclasses import dataclass
 import os
 
 from .metrics import CONFIG_DEFAULTS
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Tuple
+from .metrics import COMPLETED_STATUS, COMPLETED_OUTCOME
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,17 @@ class Config:
     max_output_rows: int = 5000            # a chart table longer than this is probably row-level data
     forbidden_columns: Tuple[str, ...] = ("customer_id", "patient_id", "email", "first_name", "last_name",
                                           "phone", "ip", "date_of_birth", "customer_dob", "password_hash")
+
+    # Virtual-care-only working settings; no team-wide definitions are changed.
+    vc_data_through: Optional[str] = None  # inclusive UTC date; required for live repeat charts
+    vc_window_days: int = 90
+    vc_small_group: int = 5
+
+    def _validate_virtual_care(self):
+        if self.vc_window_days <= 0 or self.vc_small_group <= 0:
+            raise ValueError("Virtual care window and small-group threshold must be positive")
+        if self.vc_data_through is not None:
+            date.fromisoformat(self.vc_data_through)
 
     # --- reporting windows --------------------------------------------------------------
     as_of: Optional[str] = None            # date used for ages (None = today)
@@ -63,6 +76,7 @@ class Config:
     age_labels: Tuple[str, ...] = CONFIG_DEFAULTS['age_labels']
 
     def __post_init__(self):
+        self._validate_virtual_care()
         if self.connect_timeout <= 0 or self.small_n <= 0:
             raise ValueError("Timeout and small-group threshold must be positive")
 
@@ -76,7 +90,16 @@ class Config:
 
     def params(self) -> dict:
         """Named parameters passed to every query that uses them (psycopg %(name)s style)."""
+        vc_cutoff = (datetime.combine(
+            date.fromisoformat(self.vc_data_through) + timedelta(days=1),
+            datetime.min.time(), tzinfo=timezone.utc)
+            if self.vc_data_through else None)
         return {
+            "vc_completed_status": COMPLETED_STATUS,
+            "vc_completed_outcome": COMPLETED_OUTCOME,
+            "vc_cutoff": vc_cutoff,
+            "vc_window": timedelta(days=self.vc_window_days),
+            "vc_window_days": self.vc_window_days,
             "replacement_pattern": self.replacement_pattern,
             "bulk_min": self.bulk_account_min_orders,
             "customer_roles": list(self.customer_roles),
