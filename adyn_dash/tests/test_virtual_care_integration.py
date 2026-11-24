@@ -97,7 +97,7 @@ class IntegrationChecks(unittest.TestCase):
     def test_full_virtual_care_demo_build(self):
         with tempfile.TemporaryDirectory() as folder:
             result = build(modules=['virtual_care'], out=folder, demo=True)
-            self.assertEqual(len(result['charts']), 18)
+            self.assertEqual(len(result['charts']), 19)
             self.assertTrue(all(c['status'] == 'ok' for c in result['charts']))
             saved = json.loads((Path(folder) / 'manifest.json').read_text())
             for chart in saved['charts']:

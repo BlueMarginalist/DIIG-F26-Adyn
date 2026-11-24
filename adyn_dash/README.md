@@ -202,3 +202,41 @@ Database settings are `ADYN_POSTGRES_HOST`, `ADYN_POSTGRES_PORT`, `ADYN_POSTGRES
 `ADYN_POSTGRES_USER` and `ADYN_POSTGRES_PASSWORD`. `--env-file` is optional when these
 are already set. Keep environment files local. See
 [virtual care integration notes](docs_virtual_care_integration.md) for definitions and limitations.
+
+
+## SQL and dashboard follow-up
+
+Live builds read SQL sources through the shared read-only PostgreSQL backend. Passing
+`--env-file` now selects the complete connection from that file, including optional port
+and schema. Old shell ADYN_POSTGRES_* values are not mixed into that connection. Without
+`--env-file`, process environment variables are used as before. A Config/CLI schema override
+wins over the selected file's schema. Files must contain HOST, DB, USER and PASSWORD;
+omitted PORT defaults to 5432. File values are literal (no ${NAME} expansion), and loading
+one does not change the process environment. Keep the files local and out of Git.
+
+The target database must have compatible tables and columns, or appropriate SQL overrides.
+A connection change alone cannot establish production compatibility.
+
+The new `virtual_care.viewer_noncompletion_status` export counts unique report viewers
+with a booking created at/after first view and no qualifying observed completion. It uses
+recorded appointment statuses, with missing/blank values labeled Unknown status. A customer
+can occur in more than one status, so do not sum these groups or treat them as mutually
+exclusive cancellation reasons. The table includes both report-viewer and non-completer
+percentage denominators. It does not infer abandonment, patient/provider no-shows, or
+appointment purpose. The observation is across the loaded source data; no global filters
+are applied. Existing viewer_conversion definitions are preserved.
+
+The existing `virtual_care.satisfaction` table adds `completed_visits` and
+`percent_of_type` for each visit modality. Recorded, Not expected, Missing and
+Expectation unknown remain separate; missing scores are not zero scores. This is
+physician-reported score availability, not a validated five-point customer-rating scale.
+
+There are now 75 registered exports (19 virtual-care exports), including internal charts.
+The manifest includes `global_filter_support` so frontend code can see that shared age
+and date-range filtering is not implemented across all outputs. Individual chart filters
+and analysis windows are separate concepts. Do not reuse the placeholder demo filters
+for live outputs without implementing a common cohort/event-date contract.
+
+See [remaining integration decisions](docs/backend_followup.md). These updates do not
+supply a prediction model, unverified genetic fields, or verified birth-control exposure
+at sampling. They do not wire the standalone frontend to the exports.

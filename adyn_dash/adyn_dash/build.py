@@ -102,7 +102,12 @@ def build(modules: Optional[Iterable[str]] = None, out: str = "dashboard/data", 
     finally:
         backend.close()
     manifest = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                "source": "demo" if demo else "live", "charts": entries}
+                "source": "demo" if demo else "live",
+                "global_filter_support": {
+                    "age": {"supported": False, "reason": "No common age cohort is implemented across all exports."},
+                    "date_range": {"supported": False, "reason": "No common date-range cohort is implemented across all exports; individual analysis windows are not a dashboard-wide filter."},
+                },
+                "charts": entries}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     return manifest
 

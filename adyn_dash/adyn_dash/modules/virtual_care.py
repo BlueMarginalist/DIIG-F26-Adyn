@@ -105,6 +105,12 @@ class VirtualCare(AnalysisModule):
             count = int(table.denominator.iloc[0]) if len(table) else 0
             unit = "unique customers with at least one linked PoR-approved result"
             note = "Zero-visit customers are included. Unknown types remain visible. Every type uses the same denominator; do not sum denominators across rows. Empty cohorts produce null percentages."
+        elif name == "viewer_noncompletion_status":
+            count = int(table.booked_without_observed_completion.iloc[0]) if len(table) else 0
+            unit = "unique report viewers booked without observed completion"
+            note = ("Customers may appear in multiple recorded appointment statuses. Do not sum status counts or percentages. "
+                    "Missing statuses are Unknown status; missing booking dates prevent post-view classification. "
+                    "An empty table means no qualifying status groups. No-show reason and abandonment are not inferred.")
         elif name == "viewer_conversion":
             count = int(table.denominator.iloc[0]) if len(table) else 0
             unit = "unique linked customers with a report-view date"
@@ -228,10 +234,7 @@ class VirtualCare(AnalysisModule):
                                  percent=100*n/len(ids) if len(ids) else np.nan))
         return pd.DataFrame(rows)
 
-    @chart("Virtual care after a customer's first report view", "bar",
-           x="outcome", y="percent",
-           note="Denominator: unique linked report viewers. Booking uses created_date at/after first view. Completion requires that booking plus a completed visit dated at/after view. Booked without completion is observed status, not confirmed abandonment; scheduled visits may still occur.")
-    def viewer_conversion(self):
+    def _viewer_bookings(self):
         cohort = self.data("customer_cohort").copy()
         cohort["first_viewed_date"] = pd.to_datetime(cohort.first_viewed_date, utc=True, format="mixed")
         viewers = cohort.loc[cohort.customer_id.notna() & cohort.first_viewed_date.notna(),
@@ -241,6 +244,13 @@ class VirtualCare(AnalysisModule):
         completed = booked.loc[booked.status.eq(vc_clean.COMPLETED_STATUS) &
                                booked.appointment_outcome.eq(vc_clean.COMPLETED_OUTCOME) &
                                booked.appointment_date.ge(booked.first_viewed_date)]
+        return viewers, joined, booked, completed
+
+    @chart("Virtual care after a customer's first report view", "bar",
+           x="outcome", y="percent",
+           note="Denominator: unique linked report viewers. Booking uses created_date at/after first view. Completion requires that booking plus a completed visit dated at/after view. Booked without completion is observed status, not confirmed abandonment; scheduled visits may still occur.")
+    def viewer_conversion(self):
+        viewers, joined, booked, completed = self._viewer_bookings()
         b, c = set(booked.customer_id), set(completed.customer_id)
         n = len(viewers)
         missing_created = joined.loc[joined.created_date.isna(), "customer_id"].nunique()
@@ -251,6 +261,26 @@ class VirtualCare(AnalysisModule):
                              percent=100*count/n if n else np.nan,
                              viewers_with_missing_booking_dates=int(missing_created)))
         return pd.DataFrame(rows)
+
+    @chart("Booked without observed completion, by recorded appointment status", "bar",
+           x="appointment_status", y="percent_report_viewers",
+           note="Unique report viewers with a post-view booking and no qualifying observed completion. A customer may appear in multiple status groups; percentages must not be summed. Raw status labels do not establish no-show reasons or abandonment.")
+    def viewer_noncompletion_status(self):
+        viewers, _, booked, completed = self._viewer_bookings()
+        missing_completion = booked.loc[~booked.customer_id.isin(completed.customer_id)].copy()
+        status = missing_completion.status.astype("string").str.strip()
+        missing_completion["appointment_status"] = status.mask(status.isna() | status.eq(""), "Unknown status")
+        counts = missing_completion.groupby("appointment_status").customer_id.nunique()
+        denominator = len(viewers)
+        noncompleters = missing_completion.customer_id.nunique()
+        return pd.DataFrame([
+            dict(appointment_status=label, customers=int(count), report_viewers=denominator,
+                 booked_without_observed_completion=int(noncompleters),
+                 percent_report_viewers=100 * count / denominator if denominator else np.nan,
+                 percent_noncompleters=100 * count / noncompleters if noncompleters else np.nan)
+            for label, count in counts.items()
+        ], columns=["appointment_status", "customers", "report_viewers",
+                    "booked_without_observed_completion", "percent_report_viewers", "percent_noncompleters"])
 
     @chart("Completed visits per customer, by visit type", "bar", x="visit_group", y="customer_ids",
            color="visit_type", x_order=("1", "2", "3–5", "6+"), filters=("visit_type",),
@@ -320,7 +350,10 @@ class VirtualCare(AnalysisModule):
            color="score_status", stack=True, x_order=TYPES,
            note="Physician-reported, not customer-reported. Describes availability, not score level. Async blanks are not expected.")
     def satisfaction(self):
-        return _long(self.eda.satisfaction_availability(), "visit_type", "score_status", "visits")
+        table = _long(self.eda.satisfaction_availability(), "visit_type", "score_status", "visits")
+        table["completed_visits"] = table.groupby("visit_type").visits.transform("sum")
+        table["percent_of_type"] = 100 * table.visits / table.completed_visits.replace(0, np.nan)
+        return table
 
     @chart("Completed visits per month", "line", x="month", y="visits", color="visit_type",
            filters=("visit_type",), note="The May 2024 spike is likely launch testing (client feedback).")

@@ -1,7 +1,7 @@
 """Where the data comes from: the live Postgres database, or synthetic demo data.
 
 Both backends answer the same question (`fetch(source, cfg)`), so the analyses never know which one they
-are talking to. Changing the connection is the only step needed to point the dashboard at real data.
+are talking to. Connection changes select another database with a compatible schema; SQL overrides may be needed for structural differences.
 """
 from __future__ import annotations
 
@@ -21,25 +21,34 @@ class PostgresBackend:
         cfg = cfg or Config()
         # Imports stay here so the demo and the tests work without database packages.
         import psycopg
-        if env_file is not None:
-            from dotenv import load_dotenv
-            load_dotenv(env_file, override=False)
         prefix = cfg.env_prefix
-        missing = [f"{prefix}_{n}" for n in ("HOST", "DB", "USER", "PASSWORD") if not os.getenv(f"{prefix}_{n}")]
+        if env_file is not None:
+            # Explicit files select the whole connection; never mix with stale shell settings.
+            from pathlib import Path
+            from dotenv import dotenv_values
+            path = Path(env_file).expanduser()
+            if not path.is_file():
+                raise ValueError("Database environment file does not exist")
+            settings = dotenv_values(path, interpolate=False)
+        else:
+            settings = os.environ
+        missing = [f"{prefix}_{n}" for n in ("HOST", "DB", "USER", "PASSWORD")
+                   if not settings.get(f"{prefix}_{n}")]
         if missing:
             raise ValueError("Missing environment variables: " + ", ".join(missing))
+        schema = cfg.database_schema or settings.get(f"{prefix}_SCHEMA")
         self.conn = psycopg.connect(
-            host=os.environ[f"{prefix}_HOST"], port=os.environ.get(f"{prefix}_PORT", "5432"),
-            dbname=os.environ[f"{prefix}_DB"], user=os.environ[f"{prefix}_USER"],
-            password=os.environ[f"{prefix}_PASSWORD"],
+            host=settings[f"{prefix}_HOST"], port=settings.get(f"{prefix}_PORT") or "5432",
+            dbname=settings[f"{prefix}_DB"], user=settings[f"{prefix}_USER"],
+            password=settings[f"{prefix}_PASSWORD"],
             options="-c default_transaction_read_only=on", connect_timeout=cfg.connect_timeout,
         )
         self.conn.autocommit = True
-        if cfg.connection_schema:
+        if schema:
             try:
                 from psycopg import sql
                 with self.conn.cursor() as cursor:
-                    cursor.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(cfg.connection_schema)))
+                    cursor.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(schema)))
             except Exception:
                 self.conn.close()
                 raise
