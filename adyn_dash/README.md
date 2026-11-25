@@ -240,3 +240,8 @@ for live outputs without implementing a common cohort/event-date contract.
 See [remaining integration decisions](docs/backend_followup.md). These updates do not
 supply a prediction model, unverified genetic fields, or verified birth-control exposure
 at sampling. They do not wire the standalone frontend to the exports.
+
+
+## Additional sample and biomarker coverage
+
+Four additional exports and their definitions are documented in [coverage_update.md](docs/coverage_update.md). The hormone reference summary is internal until units are verified. [dashboard_coverage.csv](docs/dashboard_coverage.csv) lists the 91 reviewed demo items and remaining gaps. These additions need a new staging build; they do not complete all original demo requirements.

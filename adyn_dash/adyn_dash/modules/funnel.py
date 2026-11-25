@@ -56,7 +56,10 @@ class Funnel(AnalysisModule):
     name = "funnel"
     title = "Order-to-result funnel"
     owner = "Michelle Zuo"
-    sources = (Source("funnel", "customers_raw", CUSTOMER_COLUMNS),) + tuple(
+    sources = (Source("funnel", "delivered_kit_samples", (
+        "is_replacement", "delivered_kits", "delivery_not_logged", "zero_logged", "one_logged",
+        "two_logged", "invalid_timing", "both_valid")),
+        Source("funnel", "customers_raw", CUSTOMER_COLUMNS),) + tuple(
         Source("funnel", n) for n in SOURCE_NAMES)
     assumptions = (
         "Replacement orders and bulk accounts (10 or more orders) are excluded from the funnel.",
@@ -167,6 +170,33 @@ class Funnel(AnalysisModule):
     def replacement_vs_viewing(self):
         return self.eda.replacement_vs_viewing()
 
+    @chart("Sample returns logged per delivered kit", "bar", x="outcome", y="percent",
+           color="kit", note="Denominator: shipments with a logged delivery date, split by original "
+           "and replacement. Returns mean sample types received by the lab. No logged return is "
+           "not confirmed non-return. Invalid chronology is a separate category. No global filters.")
+    def delivered_kit_returns(self):
+        data = self.data("delivered_kit_samples")
+        rows = []
+        for r in data.to_dict("records"):
+            for field, label in (("zero_logged", "0 returns logged"), ("one_logged", "1 return logged"),
+                                 ("two_logged", "2 returns logged"), ("invalid_timing", "Invalid chronology")):
+                n = int(r["delivered_kits"])
+                rows.append(dict(kit="replacement" if r["is_replacement"] else "original",
+                                 outcome=label, kits=int(r[field]), delivered_kits=n,
+                                 delivery_not_logged=int(r["delivery_not_logged"]),
+                                 percent=100 * int(r[field]) / n if n else None))
+        return pd.DataFrame(rows)
+
+    @chart("Delivered kits with both sample types valid", "bar", x="kit", y="percent_both_valid",
+           note="Denominator: shipments with logged delivery. Both valid means at least one valid "
+           "saliva and one valid blood sample on the SAME shipment. All observed dates; not unique "
+           "customers, paid-customer completion, or a fixed follow-up window. No global filters.")
+    def delivered_kit_both_valid(self):
+        d = self.data("delivered_kit_samples").copy()
+        d["kit"] = d["is_replacement"].map({True: "replacement", False: "original"})
+        d["percent_both_valid"] = 100 * d["both_valid"] / d["delivered_kits"].where(d["delivered_kits"] > 0)
+        return d[["kit", "delivered_kits", "both_valid", "percent_both_valid", "delivery_not_logged"]]
+
     # ---- internal data-quality checks ------------------------------------------------------------
     @chart("Which date columns are bulk-stamped", "bar", x="column_name", y="share_on_busiest_day",
            internal=True, note="A high share on one day means the column cannot describe real timing.")
@@ -200,4 +230,10 @@ class Funnel(AnalysisModule):
         tables = {n: getattr(demo, n) for n in SOURCE_NAMES if n != "cohort_by_month"}
         tables["customers_raw"] = demo.customers_raw
         tables["cohort_by_month"] = demo.cohort_by_month(cfg.cohort_start, cfg.cohort_end)
+        tables["delivered_kit_samples"] = pd.DataFrame([
+            dict(is_replacement=False, delivered_kits=100, delivery_not_logged=8,
+                 zero_logged=10, one_logged=15, two_logged=73, invalid_timing=2, both_valid=65),
+            dict(is_replacement=True, delivered_kits=20, delivery_not_logged=3,
+                 zero_logged=3, one_logged=4, two_logged=12, invalid_timing=1, both_valid=10),
+        ])
         return tables

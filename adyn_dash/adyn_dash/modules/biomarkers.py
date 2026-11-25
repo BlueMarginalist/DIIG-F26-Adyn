@@ -119,6 +119,43 @@ class Biomarkers(AnalysisModule):
                                                               value_name="median")
         return d.dropna(subset=["median"])
 
+    @chart("Recorded DNA sample statuses", "bar", x="status", y="percent",
+           note="Unique KIT-SLV sample IDs, all observed dates. Raw recorded statuses are preserved; "
+           "missing status is Unknown. This is a sample denominator, not customers. No global filters.")
+    def dna_sample_quality(self):
+        d = self.data("samples")
+        d = d.loc[d["kind"].eq("KIT-SLV")].copy()
+        if d.empty:
+            return pd.DataFrame(columns=["status", "samples", "total_samples", "percent"])
+        # A repeated identical source row must not count the same sample twice.
+        d = d[["sample_id", "status"]].drop_duplicates()
+        if d["sample_id"].isna().any() or d["sample_id"].duplicated().any():
+            raise ValueError("DNA sample IDs are missing or have conflicting statuses")
+        d["status"] = d["status"].fillna("Unknown").replace("", "Unknown")
+        out = d.groupby("status").size().rename("samples").reset_index()
+        out["total_samples"] = len(d)
+        out["percent"] = 100 * out["samples"] / len(d)
+        return out
+
+    @chart("Hormone summary by recorded reference bounds (review)", "table", internal=True,
+           note="Measurement-level median; repeats are not patient averages. Different reference "
+           "bounds remain separate. Units are unverified: internal review only, not client-ready. "
+           "Range percentage uses only measurements with finite ordered bounds. No global filters.")
+    def hormone_reference_summary(self):
+        d = self.hormones.copy()
+        rows = []
+        for (hormone, low, high), g in d.groupby(["hormone", "ref_low", "ref_high"], dropna=False):
+            valid_range = pd.notna(low) and pd.notna(high) and np.isfinite(low) and np.isfinite(high) and low <= high
+            n = len(g) if valid_range else 0
+            outside = int(((g["value"] < low) | (g["value"] > high)).sum()) if valid_range else 0
+            rows.append(dict(hormone=hormone, ref_low=low, ref_high=high,
+                             measurements=len(g), patients=g["customer_id"].nunique(),
+                             median=g["value"].median(), range_evaluable=n,
+                             out_of_range=outside, percent_out_of_range=100 * outside / n if n else None,
+                             units_status="Unverified"))
+        return pd.DataFrame(rows, columns=["hormone", "ref_low", "ref_high", "measurements", "patients",
+                            "median", "range_evaluable", "out_of_range", "percent_out_of_range", "units_status"])
+
     # ---- genetics -------------------------------------------------------------------------------------
     @chart("Share of patients with a prescription, by depression-risk score", "bar", x="third", y="share",
            note="Genetic depression-risk z-score split into thirds.")
